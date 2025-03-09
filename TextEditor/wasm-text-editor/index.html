@@ -18,7 +18,7 @@
     <button id="clear-btn">Clear</button>
 
     <script type="module">
-        import init, { format_markdown } from "./pkg/wasm_text_editor.js";
+        import init, { format_markdown,highlight_code } from "./pkg/wasm_text_editor.js";
 
         async function run() {
             await init();
@@ -30,7 +30,8 @@
 
             function updatePreview() {
                 const markdownText = editor.value;
-                const formattedHTML = format_markdown(markdownText);
+                const formattedHTML = highlight_code(markdownText);
+                console.log("formattedHTML", formattedHTML,preview);
                 preview.innerHTML = formattedHTML;
                 localStorage.setItem("savedText", markdownText);  // Auto-save
             }
