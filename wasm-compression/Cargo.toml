@@ -1,0 +1,12 @@
+[package]
+name = "wasm-compression"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+image = { version = "0.25.5", default-features = false, features = ["jpeg", "png"] }
+
