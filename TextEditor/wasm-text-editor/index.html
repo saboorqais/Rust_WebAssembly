@@ -3,32 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebAssembly Text Editor</title>
+    <title>Markdown Editor (WASM)</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        textarea { width: 100%; height: 200px; padding: 10px; }
+        #preview { border: 1px solid #ccc; padding: 10px; min-height: 200px; background: #f9f9f9; }
+    </style>
 </head>
 <body>
-    <textarea id="editor" rows="10" cols="50"></textarea>
-    <button id="bold-btn">Bold</button>
-    <button id="italic-btn">Italic</button>
-    <button id="underline-btn">Underline</button>
-    <div id="output"></div>
+    <h2>WASM Markdown Editor</h2>
+    <textarea id="editor" placeholder="Write Markdown here..."></textarea>
+    <div id="preview"></div>
+    <button id="save-btn">Save</button>
+    <button id="clear-btn">Clear</button>
 
     <script type="module">
-        import init, { format_text } from "./pkg/wasm_text_editor.js";
+        import init, { format_markdown } from "./pkg/wasm_text_editor.js";
 
         async function run() {
             await init();
 
-            // Define the function inside the module scope
-            function applyFormatting(tag) {
-                let text = document.getElementById("editor").value;
-                let formattedText = format_text(text, tag);
-                document.getElementById("output").innerHTML = formattedText;
+            const editor = document.getElementById("editor");
+            const preview = document.getElementById("preview");
+            const saveBtn = document.getElementById("save-btn");
+            const clearBtn = document.getElementById("clear-btn");
+
+            function updatePreview() {
+                const markdownText = editor.value;
+                const formattedHTML = format_markdown(markdownText);
+                preview.innerHTML = formattedHTML;
+                localStorage.setItem("savedText", markdownText);  // Auto-save
             }
 
-            // Attach event listeners dynamically
-            document.getElementById("bold-btn").addEventListener("click", () => applyFormatting("b"));
-            document.getElementById("italic-btn").addEventListener("click", () => applyFormatting("i"));
-            document.getElementById("underline-btn").addEventListener("click", () => applyFormatting("u"));
+            // Load saved text on page load
+            editor.value = localStorage.getItem("savedText") || "";
+            updatePreview();
+
+            // Live Preview
+            editor.addEventListener("input", updatePreview);
+
+            // Clear Editor
+            clearBtn.addEventListener("click", () => {
+                editor.value = "";
+                updatePreview();
+                localStorage.removeItem("savedText");
+            });
+
+            // Save Button (Manual Save)
+            saveBtn.addEventListener("click", () => {
+                localStorage.setItem("savedText", editor.value);
+                alert("Text saved!");
+            });
         }
 
         run();
