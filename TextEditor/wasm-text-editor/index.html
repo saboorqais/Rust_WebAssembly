@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAssembly Text Editor</title>
+</head>
+<body>
+    <textarea id="editor" rows="10" cols="50"></textarea>
+    <button id="bold-btn">Bold</button>
+    <button id="italic-btn">Italic</button>
+    <button id="underline-btn">Underline</button>
+    <div id="output"></div>
+
+    <script type="module">
+        import init, { format_text } from "./pkg/wasm_text_editor.js";
+
+        async function run() {
+            await init();
+
+            // Define the function inside the module scope
+            function applyFormatting(tag) {
+                let text = document.getElementById("editor").value;
+                let formattedText = format_text(text, tag);
+                document.getElementById("output").innerHTML = formattedText;
+            }
+
+            // Attach event listeners dynamically
+            document.getElementById("bold-btn").addEventListener("click", () => applyFormatting("b"));
+            document.getElementById("italic-btn").addEventListener("click", () => applyFormatting("i"));
+            document.getElementById("underline-btn").addEventListener("click", () => applyFormatting("u"));
+        }
+
+        run();
+    </script>
+</body>
+</html>
