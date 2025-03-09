@@ -30,8 +30,7 @@
 
             function updatePreview() {
                 const markdownText = editor.value;
-                const formattedHTML = highlight_code(markdownText);
-                console.log("formattedHTML", formattedHTML,preview);
+                const formattedHTML = format_markdown(markdownText);
                 preview.innerHTML = formattedHTML;
                 localStorage.setItem("savedText", markdownText);  // Auto-save
             }

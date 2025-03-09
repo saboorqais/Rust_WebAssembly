@@ -1,0 +1,5 @@
+# Ignore the target directory (Rust build artifacts)
+target/
+
+# Ignore the pkg directory (WASM build output)
+pkg/

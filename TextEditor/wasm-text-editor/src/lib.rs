@@ -19,6 +19,8 @@ pub fn highlight_code(input :&str)->String{
     output.trim().to_string()
 }
 
+
+
 #[wasm_bindgen]
 pub fn format_text(text: &str, tag: &str) -> String {
     format!("<{}>{}</{}>", tag, text, tag)
