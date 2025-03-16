@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "crdts-algo"
+name = "crdts_algo"
 version = "0.1.0"
