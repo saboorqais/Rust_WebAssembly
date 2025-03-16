@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASM Collaborative Editor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f8f9fa;
+        }
+
+        #toolbar {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            z-index: 100;
+        }
+
+        button {
+            border: none;
+            background: #ffffff;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #e0e0e0;
+        }
+
+        #editor-container {
+            margin-top: 60px;
+            width: 80%;
+            max-width: 800px;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            min-height: 500px;
+        }
+
+        #editor {
+            width: 100%;
+            min-height: 500px;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        #word-count {
+            text-align: right;
+            font-size: 14px;
+            margin-top: 10px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div id="toolbar">
+        <button onclick="formatText('bold')"><b>B</b></button>
+        <button onclick="formatText('italic')"><i>I</i></button>
+        <button onclick="formatText('underline')"><u>U</u></button>
+        <button onclick="formatText('insertOrderedList')">1.</button>
+        <button onclick="formatText('insertUnorderedList')">•</button>
+        <button onclick="formatText('justifyLeft')">⬅</button>
+        <button onclick="formatText('justifyCenter')">⬆</button>
+        <button onclick="formatText('justifyRight')">➡</button>
+        <button onclick="formatText('undo')">↩</button>
+        <button onclick="formatText('redo')">↪</button>
+    </div>
+
+    <div id="editor-container">
+        <div id="editor" contenteditable="true"></div>
+        <div id="word-count">Words: 0 | Characters: 0</div>
+    </div>
+
+    <script type="module" src="/main.js">
+
+
+    </script>
+</body>
+</html>

@@ -3,3 +3,12 @@ target/
 
 # Ignore the pkg directory (WASM build output)
 pkg/
+solana-doa/reputation-doa/node_modules/
+solana-doa/test-ledger/
+.anchor
+.DS_Store
+target
+**/*.rs.bk
+node_modules
+test-ledger
+.yarn
