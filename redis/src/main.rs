@@ -1,17 +1,39 @@
 use std::{
-    collections::HashSet,
-    collections::HashMap,
+    collections::{HashMap,HashSet},
     io::{BufRead, BufReader, Write},
     net::{TcpListener, TcpStream},
     sync::{Arc, Mutex},
     thread,
 };
+use chrono::{Utc,Duration,DateTime};
 use std::fmt;
 
 
-use chrono::{Utc,Duration,DateTime};
 type Db = Arc<Mutex<HashMap<String, RedisValue>>>;
 type CACHE = Arc<Mutex<HashMap<String, DateTime<Utc>>>>;
+
+
+#[derive(Debug)]
+struct LinkedList {
+    value: String,
+    next: Option<Box<LinkedList>>,
+}
+
+impl LinkedList {
+    fn new(value: String) -> Self {
+        LinkedList { value, next: None }
+    }
+
+    fn append(&mut self, value: String) {
+        match &mut self.next {
+            Some(next_node) => next_node.append(value),
+            None => {
+                self.next = Some(Box::new(LinkedList::new(value)));
+            }
+        }
+    }
+}
+
 
 #[derive(Debug)]
 enum ValueType {
@@ -38,6 +60,7 @@ impl fmt::Display for RedisValue {
         }
     }
 }
+type RedisDb = HashMap<String, RedisValue>;
 fn handle_client(stream: TcpStream, db: Db,cache:CACHE) {
     let mut reader = BufReader::new(stream.try_clone().unwrap());
     let mut writer = stream;
@@ -60,8 +83,8 @@ fn handle_client(stream: TcpStream, db: Db,cache:CACHE) {
             "SET" if parts.len() == 3 => {
                 db.lock()
                     .unwrap()
-                    .insert(parts[1].to_string(), RedisValue {value:ValueType::String(parts[2].to_string())});
-                cache.lock().unwrap().insert(parts[1].to_string(),Utc::now() + Duration::seconds(parts[2].parse::<i64>().unwrap()));
+                    .insert(parts[1].to_string(), RedisValue { value:ValueType::String((parts[2].to_string()))  });
+                cache.lock().unwrap().insert(parts[1].to_string(),Utc::now() + Duration::seconds(144000));
                 "+OK\n".to_string()
             }
             "EXPIRE" if parts.len() ==3  => {
