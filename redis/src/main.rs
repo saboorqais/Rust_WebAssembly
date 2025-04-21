@@ -5,64 +5,11 @@ use std::{
     sync::{Arc, Mutex},
     thread,
 };
-use chrono::{Utc,Duration,DateTime};
-use std::fmt;
+mod types;
+use types::*;
+use chrono::{Utc,Duration};
 
 
-type Db = Arc<Mutex<HashMap<String, RedisValue>>>;
-type CACHE = Arc<Mutex<HashMap<String, DateTime<Utc>>>>;
-
-
-#[derive(Debug)]
-struct LinkedList {
-    value: String,
-    next: Option<Box<LinkedList>>,
-}
-
-impl LinkedList {
-    fn new(value: String) -> Self {
-        LinkedList { value, next: None }
-    }
-
-    fn append(&mut self, value: String) {
-        match &mut self.next {
-            Some(next_node) => next_node.append(value),
-            None => {
-                self.next = Some(Box::new(LinkedList::new(value)));
-            }
-        }
-    }
-}
-
-
-#[derive(Debug)]
-enum ValueType {
-    String(String),
-    List(Vec<String>),
-    Set(HashSet<String>),
-    Hash(HashMap<String, String>),
-    SortedSet(Vec<(f64, String)>), // (score, member)
-    LinkedList(LinkedList)
-}
-
-#[derive(Debug)]
-struct RedisValue {
-    value: ValueType,
-}
-
-impl fmt::Display for RedisValue {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.value {
-            ValueType::String(val) => write!(f, "String({})", val),
-            ValueType::List(vals) => write!(f, "List({:?})", vals),
-            ValueType::Set(vals) => write!(f, "Set({:?})", vals),
-            ValueType::Hash(vals) => write!(f, "Hash({:?})", vals),
-            ValueType::SortedSet(vals) => write!(f, "SortedSet({:?})", vals),
-            ValueType::LinkedList(LinkedList) => write!(f, "Linked LIst({:?})", LinkedList),
-        }
-    }
-}
-type RedisDb = HashMap<String, RedisValue>;
 fn handle_client(stream: TcpStream, db: Db,cache:CACHE) {
     let mut reader = BufReader::new(stream.try_clone().unwrap());
     let mut writer = stream;
