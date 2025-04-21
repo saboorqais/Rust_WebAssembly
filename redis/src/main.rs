@@ -42,6 +42,7 @@ enum ValueType {
     Set(HashSet<String>),
     Hash(HashMap<String, String>),
     SortedSet(Vec<(f64, String)>), // (score, member)
+    LinkedList(LinkedList)
 }
 
 #[derive(Debug)]
@@ -57,6 +58,7 @@ impl fmt::Display for RedisValue {
             ValueType::Set(vals) => write!(f, "Set({:?})", vals),
             ValueType::Hash(vals) => write!(f, "Hash({:?})", vals),
             ValueType::SortedSet(vals) => write!(f, "SortedSet({:?})", vals),
+            ValueType::LinkedList(LinkedList) => write!(f, "Linked LIst({:?})", LinkedList),
         }
     }
 }
@@ -86,6 +88,32 @@ fn handle_client(stream: TcpStream, db: Db,cache:CACHE) {
                     .insert(parts[1].to_string(), RedisValue { value:ValueType::String((parts[2].to_string()))  });
                 cache.lock().unwrap().insert(parts[1].to_string(),Utc::now() + Duration::seconds(144000));
                 "+OK\n".to_string()
+            }
+            "LPUSH" if parts.len() == 3 =>{
+                let key: &str = parts[1];
+                if db.lock().unwrap().get(key).is_none()  {
+                    let newLinkedList =  LinkedList::new(parts[2].to_string());
+                    db.lock()
+                    .unwrap()
+                    .insert(parts[1].to_string(), RedisValue { value:ValueType::LinkedList(newLinkedList)  });
+                "+Key Created\n".to_string();
+                }
+                if let Some(redis_value) = db.lock().unwrap().get_mut(key) {
+                    match &mut redis_value.value {
+                        ValueType::LinkedList(list) => {
+                            list.append(parts[2].to_string());
+                        }
+                        _ => {
+                            // Handle the case where the key exists but is not a List
+                            println!("Type error: Value is not a List!");
+                        }
+                    }
+                } else {
+                    println!("Key not found!");
+                }
+            
+                "+OK\n".to_string()
+         
             }
             "EXPIRE" if parts.len() ==3  => {
              
