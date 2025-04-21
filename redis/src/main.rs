@@ -1,14 +1,43 @@
 use std::{
+    collections::HashSet,
     collections::HashMap,
     io::{BufRead, BufReader, Write},
     net::{TcpListener, TcpStream},
     sync::{Arc, Mutex},
     thread,
 };
+use std::fmt;
+
+
 use chrono::{Utc,Duration,DateTime};
-type Db = Arc<Mutex<HashMap<String, String>>>;
+type Db = Arc<Mutex<HashMap<String, RedisValue>>>;
 type CACHE = Arc<Mutex<HashMap<String, DateTime<Utc>>>>;
 
+#[derive(Debug)]
+enum ValueType {
+    String(String),
+    List(Vec<String>),
+    Set(HashSet<String>),
+    Hash(HashMap<String, String>),
+    SortedSet(Vec<(f64, String)>), // (score, member)
+}
+
+#[derive(Debug)]
+struct RedisValue {
+    value: ValueType,
+}
+
+impl fmt::Display for RedisValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.value {
+            ValueType::String(val) => write!(f, "String({})", val),
+            ValueType::List(vals) => write!(f, "List({:?})", vals),
+            ValueType::Set(vals) => write!(f, "Set({:?})", vals),
+            ValueType::Hash(vals) => write!(f, "Hash({:?})", vals),
+            ValueType::SortedSet(vals) => write!(f, "SortedSet({:?})", vals),
+        }
+    }
+}
 fn handle_client(stream: TcpStream, db: Db,cache:CACHE) {
     let mut reader = BufReader::new(stream.try_clone().unwrap());
     let mut writer = stream;
@@ -31,7 +60,7 @@ fn handle_client(stream: TcpStream, db: Db,cache:CACHE) {
             "SET" if parts.len() == 3 => {
                 db.lock()
                     .unwrap()
-                    .insert(parts[1].to_string(), parts[2].to_string());
+                    .insert(parts[1].to_string(), RedisValue {value:ValueType::String(parts[2].to_string())});
                 cache.lock().unwrap().insert(parts[1].to_string(),Utc::now() + Duration::seconds(parts[2].parse::<i64>().unwrap()));
                 "+OK\n".to_string()
             }
