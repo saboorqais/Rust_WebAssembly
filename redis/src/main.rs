@@ -69,32 +69,25 @@ fn handle_client(stream: TcpStream, db: Db, cache: CACHE) {
                     "+Key Created\n".to_string()
                 }
             }
-            "LPOP" if parts.len() == 3 => {
+            "LPOP" if parts.len() == 2 => {
                 let key = parts[1];
-                let value = parts[2].to_string();
-                let mut db = db.lock().unwrap();
-
+                let mut db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
                 if let Some(redis_value) = db.get_mut(key) {
                     match &mut redis_value.value {
                         ValueType::LinkedList(list) => {
-                            list.append(value);
-                            "+OK\n".to_string()
+                            match list.pop() {
+                                Some(response) => response,
+                                None => {
+                                    db.remove_entry(key);
+                                    "-ERR empty list\n".to_string()
+                                },  // <- Handle empty list here
+                            }
                         }
+                        
                         _ => "-ERR wrong type\n".to_string(),
                     }
                 } else {
-                    let mut list = LinkedList::new(value);
-                    db.insert(
-                        key.to_string(),
-                        RedisValue {
-                            value: ValueType::LinkedList(list),
-                        },
-                    );
-                    cache
-                        .lock()
-                        .unwrap()
-                        .insert(key.to_string(), Utc::now() + Duration::seconds(144000));
-                    "+Key Created\n".to_string()
+                    "-Key Does not Exist\n".to_string()
                 }
             }
             "EXPIRE" if parts.len() == 3 => {

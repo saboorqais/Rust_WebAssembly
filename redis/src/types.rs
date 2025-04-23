@@ -21,7 +21,32 @@ impl LinkedList {
     pub fn new(value: String) -> Self {
         LinkedList { value, next: None }
     }
+    pub fn pop(&mut self) -> Option<String> {
+        match self.next.as_mut() {
+            Some(next_node) if next_node.next.is_none() => {
+                // The next node is the last node
+                let last_node = self.next.take().unwrap();
+                Some(last_node.value)
+            }
+            Some(_) => {
+                // Recurse until we reach second last node
+                self.next.as_mut().unwrap().pop()
+            }
+            None => {
 
+                // This is a single-element list; cannot pop itself
+                // Optional: return Some(self.value.clone()) and mark this node as empty (?)
+                if self.value.is_empty() {
+                    None
+                } else {
+                    let old_value = self.value.clone();
+                    self.value = String::new(); // Clear the current value
+                    self.next = None;           // Ensure it's "empty"
+                    Some(old_value)
+                }
+            }
+        }
+    }
     pub fn append(&mut self, value: String) {
         match &mut self.next {
             Some(next_node) => next_node.append(value),
