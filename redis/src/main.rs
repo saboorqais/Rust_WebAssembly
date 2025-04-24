@@ -76,7 +76,12 @@ fn handle_client(stream: TcpStream, db: Db, cache: CACHE) {
                     match &mut redis_value.value {
                         ValueType::LinkedList(list) => {
                             match list.pop() {
-                                Some(response) => response,
+                                Some(response) => {
+                                    if(list.value.is_empty()){
+                                        db.remove_entry(key);
+                                    }
+                                    response
+                                },
                                 None => {
                                     db.remove_entry(key);
                                     "-ERR empty list\n".to_string()
