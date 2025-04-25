@@ -1,12 +1,15 @@
+use crate::utils::vec_utils::join_from;
+use chrono::{DateTime, Duration, Utc};
 use std::fmt;
-use chrono::{Utc, Duration, DateTime};
 use std::{
-    collections::{HashMap,HashSet},
+    collections::{HashMap, HashSet},
     io::{BufRead, BufReader},
     net::{TcpListener, TcpStream},
     sync::{Arc, Mutex},
     thread,
 };
+// Declare the `utils` module
+// Access `vec_utils` from the `utils` module
 
 pub type Db = Arc<Mutex<HashMap<String, RedisValue>>>;
 pub type CACHE = Arc<Mutex<HashMap<String, DateTime<Utc>>>>;
@@ -33,7 +36,6 @@ impl LinkedList {
                 self.next.as_mut().unwrap().pop()
             }
             None => {
-
                 // This is a single-element list; cannot pop itself
                 // Optional: return Some(self.value.clone()) and mark this node as empty (?)
                 if self.value.is_empty() {
@@ -41,7 +43,7 @@ impl LinkedList {
                 } else {
                     let old_value = self.value.clone();
                     self.value = String::new(); // Clear the current value
-                    self.next = None;           // Ensure it's "empty"
+                    self.next = None; // Ensure it's "empty"
                     Some(old_value)
                 }
             }
@@ -70,6 +72,129 @@ pub enum ValueType {
 #[derive(Debug)]
 pub struct RedisValue {
     pub value: ValueType,
+}
+pub trait RedisFunctions {
+    fn set(parts: Vec<&str>, db: &Db, cache: &CACHE) -> String;
+    fn remove(parts: Vec<&str>, db: &Db)->String;
+    fn lpush(parts: Vec<&str>, db: &Db, cache: &CACHE) -> String;
+    fn lpop(parts: Vec<&str>, db: &Db, cache: &CACHE) -> String;
+    fn expire(parts: Vec<&str>, db: &Db, cache: &CACHE) -> String;
+    fn get_all(db: &Db) -> String;
+    fn get_key(parts: Vec<&str>, db: &Db) -> String;
+}
+
+impl RedisFunctions for RedisValue {
+    fn remove(parts: Vec<&str>, db: &Db) -> String {
+        let removed = db.lock().unwrap().remove(parts[1]);
+       let response = format!(":{}\n", if removed.is_some() { 1 } else { 0 });
+       response
+
+    }
+    fn get_key(parts: Vec<&str>, db: &Db) -> String {
+        match db.lock().unwrap().get(parts[1]) {
+            Some(val) => format!("+{}\n", val),
+            None => "$-1\n".to_string(),
+        }
+    }
+    fn get_all(db: &Db) -> String {
+        let db = db.lock().unwrap();
+        if db.is_empty() {
+            "$-1\n".to_string()
+        } else {
+            let mut response = String::new();
+            for (k, v) in db.iter() {
+                response.push_str(&format!("{}: {}\n", k, v));
+            }
+            response
+        }
+    }
+
+    fn expire(parts: Vec<&str>, db: &Db, cache: &CACHE) -> String {
+        let key: &str = parts[1];
+        if db.lock().unwrap().get(key).is_none() {
+            let message = "+Value Does Not Exist\n".to_string();
+            message; // Early return if key missing
+        }
+
+        let mut cache = cache.lock().unwrap();
+        let duration = Duration::seconds(parts[2].parse::<i64>().unwrap());
+
+        let later = match cache.get(key) {
+            Some(existing) => *existing + duration,
+            None => Utc::now() + duration,
+        };
+
+        cache.insert(key.to_string(), later);
+
+        "+OK\n".to_string()
+    }
+    fn set(parts: Vec<&str>, db: &Db, cache: &CACHE) -> String {
+        db.lock().unwrap().insert(
+            parts[1].to_string(),
+            RedisValue {
+                value: ValueType::String((join_from(&parts, 2))),
+            },
+        );
+        cache
+            .lock()
+            .unwrap()
+            .insert(parts[1].to_string(), Utc::now() + Duration::seconds(144000));
+        "+OK\n".to_string()
+    }
+    fn lpush(parts: Vec<&str>, db: &Db, cache: &CACHE) -> String {
+        let key = parts[1];
+        let value = parts[2].to_string();
+        let mut db = db.lock().unwrap();
+
+        if let Some(redis_value) = db.get_mut(key) {
+            match &mut redis_value.value {
+                ValueType::LinkedList(list) => {
+                    list.append(value);
+                    "+OK\n".to_string()
+                }
+                _ => "-ERR wrong type\n".to_string(),
+            }
+        } else {
+            let mut list = LinkedList::new(value);
+            db.insert(
+                key.to_string(),
+                RedisValue {
+                    value: ValueType::LinkedList(list),
+                },
+            );
+            cache
+                .lock()
+                .unwrap()
+                .insert(key.to_string(), Utc::now() + Duration::seconds(144000));
+            "+Key Created\n".to_string()
+        }
+    }
+    fn lpop(parts: Vec<&str>, db: &Db, cache: &CACHE) -> String {
+        let key = parts[1];
+        let mut db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
+        if let Some(redis_value) = db.get_mut(key) {
+            match &mut redis_value.value {
+                ValueType::LinkedList(list) => {
+                    match list.pop() {
+                        Some(response) => {
+                            if (list.value.is_empty()) {
+                                db.remove_entry(key);
+                            }
+                            response
+                        }
+                        None => {
+                            db.remove_entry(key);
+                            "-ERR empty list\n".to_string()
+                        } // <- Handle empty list here
+                    }
+                }
+
+                _ => "-ERR wrong type\n".to_string(),
+            }
+        } else {
+            "-Key Does not Exist\n".to_string()
+        }
+    }
 }
 
 impl fmt::Display for RedisValue {

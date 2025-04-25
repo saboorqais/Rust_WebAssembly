@@ -6,6 +6,8 @@ use std::{
     thread,
 };
 mod types;
+mod utils;
+use utils::vec_utils::{join_from}; 
 use chrono::{Duration, Utc};
 use types::*;
 
@@ -18,7 +20,6 @@ fn handle_client(stream: TcpStream, db: Db, cache: CACHE) {
         if reader.read_line(&mut input).is_err() {
             break;
         }
-
         println!("{:?}", input.trim().split_whitespace().collect::<Vec<_>>());
         println!("{:?}", db.lock().unwrap());
         println!("{:?}", cache.lock().unwrap());
@@ -26,113 +27,27 @@ fn handle_client(stream: TcpStream, db: Db, cache: CACHE) {
         if parts.is_empty() {
             continue;
         }
-
+        println!("{}",parts.len());
         let response: String = match parts[0].to_uppercase().as_str() {
-            "SET" if parts.len() == 3 => {
-                db.lock().unwrap().insert(
-                    parts[1].to_string(),
-                    RedisValue {
-                        value: ValueType::String((parts[2].to_string())),
-                    },
-                );
-                cache
-                    .lock()
-                    .unwrap()
-                    .insert(parts[1].to_string(), Utc::now() + Duration::seconds(144000));
-                "+OK\n".to_string()
-            }
+            "SET" if parts.len() >= 3 => { RedisValue::set(parts, &db,  &cache)}
             "LPUSH" if parts.len() == 3 => {
-                let key = parts[1];
-                let value = parts[2].to_string();
-                let mut db = db.lock().unwrap();
-
-                if let Some(redis_value) = db.get_mut(key) {
-                    match &mut redis_value.value {
-                        ValueType::LinkedList(list) => {
-                            list.append(value);
-                            "+OK\n".to_string()
-                        }
-                        _ => "-ERR wrong type\n".to_string(),
-                    }
-                } else {
-                    let mut list = LinkedList::new(value);
-                    db.insert(
-                        key.to_string(),
-                        RedisValue {
-                            value: ValueType::LinkedList(list),
-                        },
-                    );
-                    cache
-                        .lock()
-                        .unwrap()
-                        .insert(key.to_string(), Utc::now() + Duration::seconds(144000));
-                    "+Key Created\n".to_string()
-                }
+                RedisValue::lpush(parts, &db,  &cache)
             }
             "LPOP" if parts.len() == 2 => {
-                let key = parts[1];
-                let mut db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
-                if let Some(redis_value) = db.get_mut(key) {
-                    match &mut redis_value.value {
-                        ValueType::LinkedList(list) => {
-                            match list.pop() {
-                                Some(response) => {
-                                    if(list.value.is_empty()){
-                                        db.remove_entry(key);
-                                    }
-                                    response
-                                },
-                                None => {
-                                    db.remove_entry(key);
-                                    "-ERR empty list\n".to_string()
-                                },  // <- Handle empty list here
-                            }
-                        }
-                        
-                        _ => "-ERR wrong type\n".to_string(),
-                    }
-                } else {
-                    "-Key Does not Exist\n".to_string()
-                }
+                RedisValue::lpop(parts, &db,  &cache)
             }
             "EXPIRE" if parts.len() == 3 => {
-                let key: &str = parts[1];
-                if db.lock().unwrap().get(key).is_none() {
-                    let message = "+Value Does Not Exist\n".to_string();
-                    message; // Early return if key missing
-                }
-
-                let mut cache = cache.lock().unwrap();
-                let duration = Duration::seconds(parts[2].parse::<i64>().unwrap());
-
-                let later = match cache.get(key) {
-                    Some(existing) => *existing + duration,
-                    None => Utc::now() + duration,
-                };
-
-                cache.insert(key.to_string(), later);
-
-                "+OK\n".to_string()
+                RedisValue::expire(parts, &db,  &cache)
             }
             "GET" if parts.len() == 2 && parts[1] == "*" => {
-                let db = db.lock().unwrap();
-                if db.is_empty() {
-                    "$-1\n".to_string()
-                } else {
-                    let mut response = String::new();
-                    for (k, v) in db.iter() {
-                        response.push_str(&format!("{}: {}\n", k, v));
-                    }
-                    response
-                }
+                RedisValue::get_all(&db)
             }
-            "GET" if parts.len() == 2 => match db.lock().unwrap().get(parts[1]) {
-                Some(val) => format!("+{}\n", val),
-                None => "$-1\n".to_string(),
-            },
+            "GET" if parts.len() == 2 => {
+                RedisValue::get_key(parts,&db)
+            }
+            
             "DEL" if parts.len() == 2 => {
-                let removed = db.lock().unwrap().remove(parts[1]);
-                format!(":{}\n", if removed.is_some() { 1 } else { 0 })
+                RedisValue::remove(parts,&db)
             }
             "EXIT" => break,
             _ => "-ERR unknown command\n".to_string(),
