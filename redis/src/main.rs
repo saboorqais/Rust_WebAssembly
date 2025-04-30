@@ -8,6 +8,7 @@ use std::{
 mod types;
 mod utils;
 use utils::vec_utils::{join_from}; 
+use utils::command::{execute_command,replay_aof}; 
 use chrono::{Duration, Utc};
 use types::*;
 
@@ -28,31 +29,7 @@ fn handle_client(stream: TcpStream, db: Db, cache: CACHE) {
             continue;
         }
         println!("{}",parts.len());
-        let response: String = match parts[0].to_uppercase().as_str() {
-            "SET" if parts.len() >= 3 => { RedisValue::set(parts, &db,  &cache)}
-            "LPUSH" if parts.len() == 3 => {
-                RedisValue::lpush(parts, &db,  &cache)
-            }
-            "LPOP" if parts.len() == 2 => {
-                RedisValue::lpop(parts, &db,  &cache)
-            }
-            "EXPIRE" if parts.len() == 3 => {
-                RedisValue::expire(parts, &db,  &cache)
-            }
-            "GET" if parts.len() == 2 && parts[1] == "*" => {
-                RedisValue::get_all(&db)
-            }
-            "GET" if parts.len() == 2 => {
-                RedisValue::get_key(parts,&db)
-            }
-            
-            "DEL" if parts.len() == 2 => {
-                RedisValue::remove(parts,&db)
-            }
-            "EXIT" => break,
-            _ => "-ERR unknown command\n".to_string(),
-        };
-
+        let response: String = execute_command(parts, &db, &cache);
         let _ = writer.write_all(response.as_bytes());
     }
 }
@@ -61,7 +38,7 @@ fn main() {
     let listener = TcpListener::bind("127.0.0.1:6380").unwrap();
     let db: Db = Arc::new(Mutex::new(HashMap::new()));
     let cache: CACHE = Arc::new(Mutex::new(HashMap::new()));
-
+    replay_aof(&db, &cache);
     println!("Mini Redis clone running on port 6379");
 
     for stream in listener.incoming() {
