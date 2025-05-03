@@ -1,19 +1,19 @@
-use std::fs::{File, OpenOptions};
-use std::io::{ Write};
 use crate::types::*;
+use std::fs::{File, OpenOptions};
+use std::io::Write;
 
-use std::io::{BufReader, BufRead}; // <-- Fix is here
+use std::io::{BufRead, BufReader}; // <-- Fix is here
 
-
-pub fn log_aof(command: &str) {
-    println!("Logging to AOF: {}", command); // add this
+pub fn log_aof(command: &Vec<&str>) {
+    println!("Logging to AOF: {:?}", command); // add this
     let file_result = OpenOptions::new()
-        .append(true)   // Open the file in append mode
-        .create(true)   // Create the file if it doesn't exist
+        .append(true) // Open the file in append mode
+        .create(true) // Create the file if it doesn't exist
         .open("appendonly.aof");
 
     if let Ok(mut file) = file_result {
-        if let Err(e) = writeln!(file, "{}", command.trim()) {
+        let command_str = command.join(" ").trim().to_string(); // Join and trim
+        if let Err(e) = writeln!(file, "{}", command_str) {
             eprintln!("Failed to write to AOF: {}", e);
         }
     } else {
@@ -21,20 +21,46 @@ pub fn log_aof(command: &str) {
     }
 }
 
-
 pub fn execute_command(parts: Vec<&str>, db: &Db, cache: &CACHE) -> String {
     if parts.is_empty() {
         return "-ERR empty command\n".to_string();
     }
+    let should_log = |cmd: &str| matches!(cmd, "SET" | "LPUSH" | "LPOP" | "EXPIRE" | "GET" | "DEL");
 
+    let upper_cmd = parts[0].to_uppercase();
+
+    if should_log(&upper_cmd) {
+        log_aof(&parts);
+    }
     match parts[0].to_uppercase().as_str() {
-        "SET" if parts.len() >= 3 => RedisValue::set(parts, db, cache),
-        "LPUSH" if parts.len() == 3 => RedisValue::lpush(parts, db, cache),
-        "LPOP" if parts.len() == 2 => RedisValue::lpop(parts, db, cache),
-        "EXPIRE" if parts.len() == 3 => RedisValue::expire(parts, db, cache),
-        "GET" if parts.len() == 2 && parts[1] == "*" => RedisValue::get_all(db),
-        "GET" if parts.len() == 2 => RedisValue::get_key(parts, db),
-        "DEL" if parts.len() == 2 => RedisValue::remove(parts, db),
+        "SET" if parts.len() >= 3 => {
+            RedisValue::set(parts, db, cache);
+            "+OK\n".to_string()
+        }
+        "LPUSH" if parts.len() == 3 => {
+            RedisValue::lpush(parts, db, cache);
+            "+OK\n".to_string()
+        }
+        "LPOP" if parts.len() == 2 => {
+            RedisValue::lpop(parts, db, cache);
+            "+OK\n".to_string()
+        }
+        "EXPIRE" if parts.len() == 3 => {
+            RedisValue::expire(parts, db, cache);
+            "+OK\n".to_string()
+        }
+        "GET" if parts.len() == 2 && parts[1] == "*" => {
+            let response = RedisValue::get_all(db);
+            response.to_string()
+        }
+        "GET" if parts.len() == 2 => {
+            let response = RedisValue::get_key(parts, db);
+            response.to_string()
+        }
+        "DEL" if parts.len() == 2 => {
+            RedisValue::remove(parts, db);
+            "+OK\n".to_string()
+        }
         "EXIT" => "EXIT".to_string(), // for handling shutdown in server
         _ => "-ERR unknown or unsupported command\n".to_string(),
     }
