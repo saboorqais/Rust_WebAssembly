@@ -7,8 +7,10 @@ use std::{
 };
 mod types;
 mod utils;
+mod logging;
 use utils::vec_utils::{join_from}; 
-use utils::command::{execute_command,replay_aof}; 
+use utils::command::{execute_command};
+use logging::logging::Logger; 
 use chrono::{Duration, Utc};
 use types::*;
 
@@ -29,7 +31,7 @@ fn handle_client(stream: TcpStream, db: Db, cache: CACHE) {
             continue;
         }
         println!("{}",parts.len());
-        let response: String = execute_command(parts, &db, &cache);
+        let response: String = execute_command(parts, &db, &cache,true);
         let _ = writer.write_all(response.as_bytes());
     }
 }
@@ -38,7 +40,7 @@ fn main() {
     let listener = TcpListener::bind("127.0.0.1:6380").unwrap();
     let db: Db = Arc::new(Mutex::new(HashMap::new()));
     let cache: CACHE = Arc::new(Mutex::new(HashMap::new()));
-    replay_aof(&db, &cache);
+    Logger::replay_aof(&db, &cache);
     println!("Mini Redis clone running on port 6379");
 
     for stream in listener.incoming() {
