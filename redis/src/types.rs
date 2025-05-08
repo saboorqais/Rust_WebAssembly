@@ -198,13 +198,10 @@ impl RedisFunctions for RedisValue {
         let key = parts[1];
         if let Some(value_type ) = db.get_mut(key){
             match &mut value_type.value {
-                ValueType::Stream(list) => {
-               return "-ERR wrong type\n".to_string()
-                }
-                _ => return "-ERR wrong type\n".to_string(),
+                ValueType::Stream(list) =>  "-ERR wrong type\n".to_string(),
+                _ =>  "-ERR wrong type\n".to_string(),
             
             }
-            "+Stream Exists".to_string()
         }else{
         let  newStrem = Stream::new();
         let redisStream  = RedisValue { 
