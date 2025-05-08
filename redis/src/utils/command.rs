@@ -27,6 +27,14 @@ pub fn execute_command(parts: Vec<&str>, db: &Db, cache: &CACHE, logging: bool) 
             RedisValue::lpop(parts, db, cache);
             "+OK\n".to_string()
         }
+        "XADD" if parts.len() > 4 => {
+            if (logging) {
+                Logger::log_aof(&parts);
+            }
+            println!("Hash({:?})",parts);
+           let response = RedisValue::x_add(parts, db);
+           response
+        }
         "EXPIRE" if parts.len() == 3 => {
             if (logging) {
                 Logger::log_aof(&parts);

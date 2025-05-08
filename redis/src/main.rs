@@ -8,6 +8,7 @@ use std::{
 mod types;
 mod utils;
 mod logging;
+mod stream;
 use utils::vec_utils::{join_from}; 
 use utils::command::{execute_command};
 use logging::logging::Logger; 

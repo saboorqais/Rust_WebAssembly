@@ -1,26 +1,33 @@
-use crate::vec_utils::RedisValue;
+use crate::types::RedisValue;
 use std::collections::HashMap;
-struct StreamEntry {
-    id: String,         // e.g., "1-0", "2-0"
-    data: RedisValue,       // or use a custom key-value struct if supporting fields
+use std::collections::BTreeMap;
+type EntryId = String;
+#[derive(Debug)]
+pub struct StreamEntry {
+    value: RedisValue,
 }
-struct Stream {
-    entries: Vec<StreamEntry>,
-    last_id: u64,
+#[derive(Debug)]
+pub struct Stream {
+    entries: BTreeMap<EntryId, StreamEntry>,
+    last_id:u64,
 }
-trait StreamFucntions {
+pub trait StreamFunctions {
     fn new() -> Self;
-    fn add_entry(&mut self, data: String) -> String;
+    // fn add_entry(&mut self, data: String) -> String;
     // fn get_entry(&self, id: &str) -> Option<&StreamEntry>;
 }
-impl StreamFucntions for Stream {
-    fn new() {
+
+impl StreamFunctions for Stream {
+    fn new()->Self {
         Stream {
+            entries: BTreeMap::new(),
+            last_id:0
+
         }
     }
-    fn add_entry(&mut self, data: RedisValue) -> Stream{
-
-    }
+    // fn add_entry(&mut self, data: RedisValue) -> Stream{
+        
+    // }
 
 }
 trait ConsumerFunctions {

@@ -1,12 +1,10 @@
 use crate::utils::vec_utils::join_from;
+use crate::stream::stream::{Stream,StreamFunctions};
 use chrono::{DateTime, Duration, Utc};
 use std::fmt;
 use std::{
     collections::{HashMap, HashSet},
-    io::{BufRead, BufReader},
-    net::{TcpListener, TcpStream},
-    sync::{Arc, Mutex},
-    thread,
+    sync::{Arc, Mutex}
 };
 // Declare the `utils` module
 // Access `vec_utils` from the `utils` module
@@ -67,6 +65,7 @@ pub enum ValueType {
     Hash(HashMap<String, String>),
     SortedSet(Vec<(f64, String)>),
     LinkedList(LinkedList),
+    Stream(Stream)
 }
 
 #[derive(Debug)]
@@ -75,20 +74,20 @@ pub struct RedisValue {
 }
 pub trait RedisFunctions {
     fn set(parts: Vec<&str>, db: &Db, cache: &CACHE) -> String;
-    fn remove(parts: Vec<&str>, db: &Db)->String;
+    fn remove(parts: Vec<&str>, db: &Db) -> String;
     fn lpush(parts: Vec<&str>, db: &Db, cache: &CACHE) -> String;
     fn lpop(parts: Vec<&str>, db: &Db, cache: &CACHE) -> String;
     fn expire(parts: Vec<&str>, db: &Db, cache: &CACHE) -> String;
     fn get_all(db: &Db) -> String;
     fn get_key(parts: Vec<&str>, db: &Db) -> String;
+    fn x_add(parts: Vec<&str>, db: &Db) -> String;
 }
 
 impl RedisFunctions for RedisValue {
     fn remove(parts: Vec<&str>, db: &Db) -> String {
         let removed = db.lock().unwrap().remove(parts[1]);
-       let response = format!(":{}\n", if removed.is_some() { 1 } else { 0 });
-       response
-
+        let response = format!(":{}\n", if removed.is_some() { 1 } else { 0 });
+        response
     }
     fn get_key(parts: Vec<&str>, db: &Db) -> String {
         match db.lock().unwrap().get(parts[1]) {
@@ -188,12 +187,32 @@ impl RedisFunctions for RedisValue {
                         } // <- Handle empty list here
                     }
                 }
-
                 _ => "-ERR wrong type\n".to_string(),
             }
         } else {
             "-Key Does not Exist\n".to_string()
         }
+    }
+    fn x_add(parts: Vec<&str>, db: &Db) -> String {
+        let mut db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
+        let key = parts[1];
+        if let Some(value_type ) = db.get_mut(key){
+            match &mut value_type.value {
+                ValueType::Stream(list) => {
+               return "-ERR wrong type\n".to_string()
+                }
+                _ => return "-ERR wrong type\n".to_string(),
+            
+            }
+            "+Stream Exists".to_string()
+        }else{
+        let  newStrem = Stream::new();
+        let redisStream  = RedisValue { 
+            value:ValueType::Stream(newStrem)
+        };
+        "+Stream Created".to_string()
+        }
+
     }
 }
 
@@ -206,6 +225,7 @@ impl fmt::Display for RedisValue {
             ValueType::Hash(vals) => write!(f, "Hash({:?})", vals),
             ValueType::SortedSet(vals) => write!(f, "SortedSet({:?})", vals),
             ValueType::LinkedList(linked_list) => write!(f, "LinkedList({:?})", linked_list),
+            ValueType::Stream(_linked_list) => write!(f, "LinkedList()"),
         }
     }
 }
