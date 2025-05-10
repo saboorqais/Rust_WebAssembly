@@ -45,6 +45,7 @@ fn main() {
     let cache: CACHE = Arc::new(Mutex::new(HashMap::new()));
     Logger::replay_aof(&db, &cache);
     for stream in listener.incoming() {
+        println!("Client Connected");
         match stream {
             Ok(stream) => {
                 let db = Arc::clone(&db);

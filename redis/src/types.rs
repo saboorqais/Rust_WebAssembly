@@ -1,12 +1,12 @@
+use crate::stream::stream::{Stream, StreamFunctions};
 use crate::utils::vec_utils::join_from;
-use crate::stream::stream::{Stream,StreamFunctions};
 use chrono::{DateTime, Duration, Utc};
 use std::fmt;
-use std::{
-    collections::{HashMap},
-    sync::{Arc, Mutex}
-};
 use std::fmt::Write;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 // Declare the `utils` module
 // Access `vec_utils` from the `utils` module
 
@@ -66,7 +66,7 @@ pub enum ValueType {
     Hash(HashMap<String, String>),
     // SortedSet(Vec<(f64, String)>),
     LinkedList(LinkedList),
-    Stream(Stream)
+    Stream(Stream),
 }
 
 #[derive(Debug)]
@@ -82,6 +82,7 @@ pub trait RedisFunctions {
     fn get_all(db: &Db) -> String;
     fn get_key(parts: Vec<&str>, db: &Db) -> String;
     fn x_add(parts: Vec<&str>, db: &Db) -> String;
+    fn x_read(parts: Vec<&str>, db: &Db) -> String;
 }
 impl RedisFunctions for RedisValue {
     fn remove(parts: Vec<&str>, db: &Db) -> String {
@@ -193,42 +194,52 @@ impl RedisFunctions for RedisValue {
             "-Key Does not Exist\n".to_string()
         }
     }
-    fn x_add(parts: Vec<&str>, db: &Db) -> String {
+    fn x_read(parts: Vec<&str>, db: &Db) -> String {
         let mut db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
         let key = parts[1];
-        if let Some(value_type ) = db.get_mut(key){
+        if let Some(value_type) = db.get_mut(key) {
             match &mut value_type.value {
                 ValueType::Stream(_stream) => {
-                    let mut  hash_map:HashMap<String,String> =  HashMap::new();
+                    let mut hash_map: HashMap<String, String> = HashMap::new();
                     let new_chunks = parts[3..].chunks(2);
-                    for chunk in new_chunks{
+                    for chunk in new_chunks {
                         if let [key, value] = chunk {
                             hash_map.insert(key.to_string(), value.to_string());
                         }
                     }
                     _stream.add_entry(ValueType::Hash(hash_map));
                     "+New Message Added".to_string()
-                },
-                _ =>  "-ERR wrong type\n".to_string(),
-            
+                }
+                _ => "-ERR wrong type\n".to_string(),
             }
-        }else{
-        let mut new_strem = Stream::new();
-        let mut  hash_map:HashMap<String,String> =  HashMap::new();
-        let new_chunks = parts[3..].chunks(2);
-        for chunk in new_chunks{
-            if let [key, value] = chunk {
-                hash_map.insert(key.to_string(), value.to_string());
+        } else {
+            let mut new_strem = Stream::new();
+            let mut hash_map: HashMap<String, String> = HashMap::new();
+            let new_chunks = parts[3..].chunks(2);
+            for chunk in new_chunks {
+                if let [key, value] = chunk {
+                    hash_map.insert(key.to_string(), value.to_string());
+                }
             }
+            let response = new_strem.add_entry(ValueType::Hash(hash_map));
+            let redis_stream = RedisValue {
+                value: ValueType::Stream(new_strem),
+            };
+            db.insert(key.to_string(), redis_stream);
+            response
         }
-        let response =new_strem.add_entry(ValueType::Hash(hash_map));
-        let redis_stream  = RedisValue { 
-            value:ValueType::Stream(new_strem)
-        };
-        db.insert(key.to_string(),redis_stream );
-        response
+    }
+    fn x_add(parts: Vec<&str>, db: &Db) -> String {
+        let db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
+        let key = parts[1];
+        if let Some(stream) = db.get(key) {
+            match &stream.value {
+                ValueType::Stream(_stream) => "ok".to_string(),
+                _ => "-ERR wrong type\n".to_string(),
+            }
+        } else {
+            "+Not Ok".to_string()
         }
-
     }
 }
 
@@ -253,8 +264,6 @@ impl fmt::Display for RedisValue {
                 }
                 write!(f, "Stream => {}", output) // This returns the formatted stream
             }
-        
         }
     }
 }
-

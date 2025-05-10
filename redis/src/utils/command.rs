@@ -41,6 +41,15 @@ pub fn execute_command(parts: Vec<&str>, db: &Db, cache: &CACHE, logging: bool) 
             let response = RedisValue::x_add(parts, db);
             response
         }
+        "XREAD"  => {
+            validate_or_return!(XADDValidator, parts);
+            if logging {
+                Logger::log_aof(&parts);
+            }
+            println!("Hash({:?})", parts);
+            let response = RedisValue::x_add(parts, db);
+            response
+        }
         "EXPIRE" if parts.len() == 3 => {
             if logging {
                 Logger::log_aof(&parts);
