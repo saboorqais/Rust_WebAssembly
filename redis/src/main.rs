@@ -5,6 +5,8 @@ use std::{
     sync::{Arc, Mutex},
     thread,
 };
+#[macro_use]
+mod macros;
 mod types;
 mod utils;
 mod logging;
@@ -38,7 +40,7 @@ fn handle_client(stream: TcpStream, db: Db, cache: CACHE) {
 }
 
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:6380").unwrap();
+    let listener = TcpListener::bind("127.0.0.1:6381").unwrap();
     let db: Db = Arc::new(Mutex::new(HashMap::new()));
     let cache: CACHE = Arc::new(Mutex::new(HashMap::new()));
     Logger::replay_aof(&db, &cache);

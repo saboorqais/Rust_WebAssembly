@@ -82,7 +82,6 @@ pub trait RedisFunctions {
     fn get_key(parts: Vec<&str>, db: &Db) -> String;
     fn x_add(parts: Vec<&str>, db: &Db) -> String;
 }
-
 impl RedisFunctions for RedisValue {
     fn remove(parts: Vec<&str>, db: &Db) -> String {
         let removed = db.lock().unwrap().remove(parts[1]);
@@ -203,10 +202,11 @@ impl RedisFunctions for RedisValue {
             
             }
         }else{
-        let  newStrem = Stream::new();
-        let redisStream  = RedisValue { 
-            value:ValueType::Stream(newStrem)
-        };
+        // let  newStrem = Stream::new();
+        // let redisStream  = RedisValue { 
+        //     value:ValueType::Stream(newStrem)
+        // };
+        print!("{:?}",parts);
         "+Stream Created".to_string()
         }
 
@@ -227,4 +227,3 @@ impl fmt::Display for RedisValue {
     }
 }
 
-pub type RedisDb = HashMap<String, RedisValue>;

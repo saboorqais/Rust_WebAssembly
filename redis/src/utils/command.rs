@@ -1,42 +1,48 @@
-use crate::types::*;
 use crate::Logger;
-
+use crate::types::*;
+use crate::utils::validator::{
+    CommandValidator, LPopValidator, LPushValidator, SetValidator, XADDValidator,
+};
 pub fn execute_command(parts: Vec<&str>, db: &Db, cache: &CACHE, logging: bool) -> String {
     if parts.is_empty() {
         return "-ERR empty command\n".to_string();
     }
     match parts[0].to_uppercase().as_str() {
-        "SET" if parts.len() >= 3 => {
-            if (logging) {
+        "SET" => {
+            validate_or_return!(SetValidator, parts);
+            if logging {
                 Logger::log_aof(&parts);
             }
             RedisValue::set(parts, db, cache);
             "+OK\n".to_string()
         }
-        "LPUSH" if parts.len() == 3 => {
-            if (logging) {
+        "LPUSH" => {
+            validate_or_return!(LPushValidator, parts);
+            if logging {
                 Logger::log_aof(&parts);
             }
             RedisValue::lpush(parts, db, cache);
             "+OK\n".to_string()
         }
-        "LPOP" if parts.len() == 2 => {
-            if (logging) {
+        "LPOP" => {
+            validate_or_return!(LPopValidator, parts);
+            if logging {
                 Logger::log_aof(&parts);
             }
             RedisValue::lpop(parts, db, cache);
             "+OK\n".to_string()
         }
-        "XADD" if parts.len() > 4 => {
-            if (logging) {
+        "XADD"  => {
+            validate_or_return!(XADDValidator, parts);
+            if logging {
                 Logger::log_aof(&parts);
             }
-            println!("Hash({:?})",parts);
-           let response = RedisValue::x_add(parts, db);
-           response
+            println!("Hash({:?})", parts);
+            let response = RedisValue::x_add(parts, db);
+            response
         }
         "EXPIRE" if parts.len() == 3 => {
-            if (logging) {
+            if logging {
                 Logger::log_aof(&parts);
             }
             RedisValue::expire(parts, db, cache);
@@ -67,5 +73,3 @@ pub fn execute_command(parts: Vec<&str>, db: &Db, cache: &CACHE, logging: bool) 
         _ => "-ERR unknown or unsupported command\n".to_string(),
     }
 }
-
-

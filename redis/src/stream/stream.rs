@@ -13,7 +13,7 @@ pub struct Stream {
 }
 pub trait StreamFunctions {
     fn new() -> Self;
-    // fn add_entry(&mut self, data: String) -> String;
+    // fn add_entry(&mut self, data: String) -> Stream;
     // fn get_entry(&self, id: &str) -> Option<&StreamEntry>;
 }
 
