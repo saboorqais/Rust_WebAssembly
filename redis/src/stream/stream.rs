@@ -11,7 +11,7 @@ pub struct StreamEntry {
 pub trait StreamFunctions {
     fn new() -> Self;
     fn add_entry(&mut self, data: ValueType) -> String;
-    // fn get_entry(&self, id: &str) -> Option<&StreamEntry>;
+    fn xread(&self, start_id: &str, count: Option<usize>) -> String;
 }
 
 #[derive(Debug)]
@@ -34,6 +34,37 @@ impl StreamFunctions for Stream {
         self.entries.insert(id, StreamEntry { value: data });
         self.last_id = self.last_id +1;
         "+Ok Entry Added".to_string()
+    }
+    fn xread(&self, start_id: &str, count: Option<usize>) -> String {
+        let mut result = Vec::new();
+        // Use BTreeMap's range query
+        for (id, entry) in self.entries.range(start_id.to_string()..) {
+            // Match the internal value
+            match &entry.value {
+                ValueType::Hash(map) => {
+                    // Serialize the key-value pairs
+                    let mut formatted_fields = String::new();
+                    for (field, value) in map {
+                        formatted_fields.push_str(&format!("{} {}\n", field, value));
+                    }
+        
+                    // Format the response line (this is just an example)
+                    let formatted_entry = format!("ID: {}\n{}", id, formatted_fields);
+                    result.push(formatted_entry);
+                }
+                _ => {
+                    result.push(format!("ID: {} -ERR invalid stream entry\n", id));
+                }
+            }
+        
+            // Respect count limit
+            if let Some(max) = count {
+                if result.len() >= max {
+                    break;
+                }
+            }
+        }
+        result.join("")
     }
 }
 trait ConsumerFunctions {

@@ -42,12 +42,12 @@ pub fn execute_command(parts: Vec<&str>, db: &Db, cache: &CACHE, logging: bool) 
             response
         }
         "XREAD"  => {
-            validate_or_return!(XADDValidator, parts);
+            // validate_or_return!(XADDValidator, parts);
             if logging {
                 Logger::log_aof(&parts);
             }
             println!("Hash({:?})", parts);
-            let response = RedisValue::x_add(parts, db);
+            let response = RedisValue::x_read(parts, db);
             response
         }
         "EXPIRE" if parts.len() == 3 => {

@@ -1,0 +1,6 @@
+XADD mystream * hello mykey newkey hello
+XADD mynewstream * good morning
+XADD newhello * hymeh asda
+XREAD Stream newhello 1746911106030-0
+XADD newhello * new key hello asd
+XREAD STREAMS newhello 1746911210347-0 1

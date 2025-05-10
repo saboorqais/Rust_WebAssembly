@@ -194,7 +194,7 @@ impl RedisFunctions for RedisValue {
             "-Key Does not Exist\n".to_string()
         }
     }
-    fn x_read(parts: Vec<&str>, db: &Db) -> String {
+    fn x_add(parts: Vec<&str>, db: &Db) -> String {
         let mut db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
         let key = parts[1];
         if let Some(value_type) = db.get_mut(key) {
@@ -229,12 +229,17 @@ impl RedisFunctions for RedisValue {
             response
         }
     }
-    fn x_add(parts: Vec<&str>, db: &Db) -> String {
+    fn x_read(parts: Vec<&str>, db: &Db) -> String {
         let db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
-        let key = parts[1];
+        let key = parts[2];
         if let Some(stream) = db.get(key) {
             match &stream.value {
-                ValueType::Stream(_stream) => "ok".to_string(),
+                ValueType::Stream(_stream) => {
+                    let start_id = parts[3];
+                    let count: Option<usize> = parts.get(4).and_then(|s| s.parse::<usize>().ok());
+                    let response = _stream.xread(start_id, count);
+                    response
+                }
                 _ => "-ERR wrong type\n".to_string(),
             }
         } else {
