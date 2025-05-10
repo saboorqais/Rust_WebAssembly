@@ -1,3 +1,0 @@
-SET mykey Hello
-LPUSH h hello
-LPUSH h e

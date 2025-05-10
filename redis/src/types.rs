@@ -6,6 +6,7 @@ use std::{
     collections::{HashMap, HashSet},
     sync::{Arc, Mutex}
 };
+use std::fmt::Write;
 // Declare the `utils` module
 // Access `vec_utils` from the `utils` module
 
@@ -60,10 +61,10 @@ impl LinkedList {
 #[derive(Debug)]
 pub enum ValueType {
     String(String),
-    List(Vec<String>),
-    Set(HashSet<String>),
+    // List(Vec<String>),
+    // Set(HashSet<String>),
     Hash(HashMap<String, String>),
-    SortedSet(Vec<(f64, String)>),
+    // SortedSet(Vec<(f64, String)>),
     LinkedList(LinkedList),
     Stream(Stream)
 }
@@ -197,17 +198,35 @@ impl RedisFunctions for RedisValue {
         let key = parts[1];
         if let Some(value_type ) = db.get_mut(key){
             match &mut value_type.value {
-                ValueType::Stream(list) =>  "-ERR wrong type\n".to_string(),
+                ValueType::Stream(_stream) => {
+                    let mut  hash_map:HashMap<String,String> =  HashMap::new();
+                    let new_chunks = parts[3..].chunks(2);
+                    for chunk in new_chunks{
+                        if let [key, value] = chunk {
+                            hash_map.insert(key.to_string(), value.to_string());
+                        }
+                    }
+                    _stream.add_entry(ValueType::Hash(hash_map));
+                    "+New Message Added".to_string()
+                },
                 _ =>  "-ERR wrong type\n".to_string(),
             
             }
         }else{
-        // let  newStrem = Stream::new();
-        // let redisStream  = RedisValue { 
-        //     value:ValueType::Stream(newStrem)
-        // };
-        print!("{:?}",parts);
-        "+Stream Created".to_string()
+        let mut new_strem = Stream::new();
+        let mut  hash_map:HashMap<String,String> =  HashMap::new();
+        let new_chunks = parts[3..].chunks(2);
+        for chunk in new_chunks{
+            if let [key, value] = chunk {
+                hash_map.insert(key.to_string(), value.to_string());
+            }
+        }
+        let response =new_strem.add_entry(ValueType::Hash(hash_map));
+        let redis_stream  = RedisValue { 
+            value:ValueType::Stream(new_strem)
+        };
+        db.insert(key.to_string(),redis_stream );
+        response
         }
 
     }
@@ -217,12 +236,24 @@ impl fmt::Display for RedisValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.value {
             ValueType::String(val) => write!(f, "String({})", val),
-            ValueType::List(vals) => write!(f, "List({:?})", vals),
-            ValueType::Set(vals) => write!(f, "Set({:?})", vals),
+            // ValueType::List(vals) => write!(f, "List({:?})", vals),
+            // ValueType::Set(vals) => write!(f, "Set({:?})", vals),
             ValueType::Hash(vals) => write!(f, "Hash({:?})", vals),
-            ValueType::SortedSet(vals) => write!(f, "SortedSet({:?})", vals),
+            // ValueType::SortedSet(vals) => write!(f, "SortedSet({:?})", vals),
             ValueType::LinkedList(linked_list) => write!(f, "LinkedList({:?})", linked_list),
-            ValueType::Stream(_linked_list) => write!(f, "LinkedList()"),
+            ValueType::Stream(stream) => {
+                let mut output = String::new();
+                for (id, entry) in &stream.entries {
+                    if let ValueType::Hash(map) = &entry.value {
+                        let _ = writeln!(output, "{}:", id);
+                        for (k, v) in map {
+                            let _ = writeln!(output, "  {} => {}", k, v);
+                        }
+                    }
+                }
+                write!(f, "Stream => {}", output) // This returns the formatted stream
+            }
+        
         }
     }
 }

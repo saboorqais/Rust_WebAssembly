@@ -6,7 +6,6 @@ pub struct SetValidator;
 pub struct LPopValidator;
 pub struct XADDValidator;
 
-
 impl CommandValidator for XADDValidator {
     fn validate(parts: &Vec<&str>) -> Result<(), String> {
         let arguments_length = parts.len() - 3;
