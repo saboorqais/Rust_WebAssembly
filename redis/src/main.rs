@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap},
     io::{BufRead, BufReader, Write},
     net::{TcpListener, TcpStream},
     sync::{Arc, Mutex},
@@ -11,12 +11,10 @@ mod types;
 mod utils;
 mod logging;
 mod stream;
-use utils::vec_utils::{join_from}; 
-use utils::command::{execute_command};
+use utils::command::execute_command;
 use logging::logging::Logger; 
-use chrono::{Duration, Utc};
 use types::*;
-
+use std::env;
 fn handle_client(stream: TcpStream, db: Db, cache: CACHE) {
     let mut reader = BufReader::new(stream.try_clone().unwrap());
     let mut writer = stream;
@@ -40,12 +38,12 @@ fn handle_client(stream: TcpStream, db: Db, cache: CACHE) {
 }
 
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:6381").unwrap();
+    let port = env::var("PORT").unwrap_or_else(|_| "127.0.0.1:6381".to_string());
+    println!("Mini Redis clone running on port {}",&port);
+    let listener = TcpListener::bind(port).unwrap();
     let db: Db = Arc::new(Mutex::new(HashMap::new()));
     let cache: CACHE = Arc::new(Mutex::new(HashMap::new()));
     Logger::replay_aof(&db, &cache);
-    println!("Mini Redis clone running on port 6379");
-
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {

@@ -3,7 +3,7 @@ use crate::stream::stream::{Stream,StreamFunctions};
 use chrono::{DateTime, Duration, Utc};
 use std::fmt;
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap},
     sync::{Arc, Mutex}
 };
 use std::fmt::Write;
@@ -131,7 +131,7 @@ impl RedisFunctions for RedisValue {
         db.lock().unwrap().insert(
             parts[1].to_string(),
             RedisValue {
-                value: ValueType::String((join_from(&parts, 2))),
+                value: ValueType::String(join_from(&parts, 2)),
             },
         );
         cache
@@ -154,7 +154,7 @@ impl RedisFunctions for RedisValue {
                 _ => "-ERR wrong type\n".to_string(),
             }
         } else {
-            let mut list = LinkedList::new(value);
+            let list = LinkedList::new(value);
             db.insert(
                 key.to_string(),
                 RedisValue {
@@ -176,7 +176,7 @@ impl RedisFunctions for RedisValue {
                 ValueType::LinkedList(list) => {
                     match list.pop() {
                         Some(response) => {
-                            if (list.value.is_empty()) {
+                            if list.value.is_empty() {
                                 db.remove_entry(key);
                             }
                             response
