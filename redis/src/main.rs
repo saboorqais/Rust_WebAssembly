@@ -11,6 +11,7 @@ mod types;
 mod utils;
 mod logging;
 mod stream;
+mod consumer;
 use utils::command::execute_command;
 use logging::logging::Logger; 
 use types::*;
