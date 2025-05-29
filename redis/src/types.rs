@@ -1,6 +1,8 @@
+use crate::consumer::consumer::ConsumerGroup;
 use crate::stream::stream::{Stream, StreamFunctions};
 use crate::utils::vec_utils::join_from;
 use chrono::{DateTime, Duration, Utc};
+use std::collections::BTreeMap;
 use std::fmt;
 use std::fmt::Write;
 use std::{
@@ -83,6 +85,7 @@ pub trait RedisFunctions {
     fn get_key(parts: Vec<&str>, db: &Db) -> String;
     fn x_add(parts: Vec<&str>, db: &Db) -> String;
     fn x_read(parts: Vec<&str>, db: &Db) -> String;
+    fn x_group_add(parts: Vec<&str>, db: &Db)->String;
 }
 impl RedisFunctions for RedisValue {
     fn remove(parts: Vec<&str>, db: &Db) -> String {
@@ -194,6 +197,30 @@ impl RedisFunctions for RedisValue {
             "-Key Does not Exist\n".to_string()
         }
     }
+    fn x_group_add(parts: Vec<&str>, db: &Db)->String {
+        let mut db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
+        let stream_name: &str = parts[2];
+        let group_name: &str = parts[3];
+        let last_delivered_id: &str = parts[4];
+
+        if let Some(value_type) = db.get_mut(stream_name) {
+            match &mut value_type.value {
+                ValueType::Stream(_stream) => {
+                    _stream.consumer_groups.insert(group_name.to_string(), ConsumerGroup{
+                        name:group_name.to_string(),
+                        last_delivered_id:last_delivered_id.to_string(),
+                        consumers:BTreeMap::new(),
+                        pending:BTreeMap::new(),
+
+                    });
+                    "+New Group Added".to_string()
+                }
+                _ => "-ERR wrong type\n".to_string(),
+            }
+        } else {
+           "Error Creating Consumer Group".to_string()
+        }
+    }
     fn x_add(parts: Vec<&str>, db: &Db) -> String {
         let mut db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
         let key = parts[1];
@@ -213,7 +240,6 @@ impl RedisFunctions for RedisValue {
                 _ => "-ERR wrong type\n".to_string(),
             }
         } else {
-            println!("++++++++++ Created new Stream");
             let mut new_strem = Stream::new();
             let mut hash_map: HashMap<String, String> = HashMap::new();
             let new_chunks = parts[3..].chunks(2);
@@ -230,6 +256,7 @@ impl RedisFunctions for RedisValue {
             response
         }
     }
+
     fn x_read(parts: Vec<&str>, db: &Db) -> String {
         let db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
         let key = parts[2];

@@ -21,7 +21,7 @@ impl CommandValidator for XADDValidator {
 impl CommandValidator for XGROUPADDValidator {
     fn validate(parts: &Vec<&str>) -> Result<(), String> {
         let arguments_length = parts.len() - 3;
-        if parts.len() < 4 {
+        if parts.len() < 5 {
             Err("-ERR wrong number of arguments for 'XGROUP ADD'\n".to_string())
         } else if !(arguments_length % 2 == 0) {
             Err("-ERR wrong number of arguments for 'XAdd' Values\n".to_string())

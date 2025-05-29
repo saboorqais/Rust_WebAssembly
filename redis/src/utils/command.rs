@@ -1,3 +1,4 @@
+use crate::utils::validator::XGROUPADDValidator;
 use crate::Logger;
 use crate::types::*;
 use crate::utils::validator::{
@@ -42,12 +43,12 @@ pub fn execute_command(parts: Vec<&str>, db: &Db, cache: &CACHE, logging: bool) 
             response
         }
         "XGROUPADD"  => {
-            validate_or_return!(XADDValidator, parts);
+            validate_or_return!(XGROUPADDValidator, parts);
             if logging {
                 Logger::log_aof(&parts);
             }
             println!("Hash({:?})", parts);
-            let response = RedisValue::x_add(parts, db);
+            let response = RedisValue::x_group_add(parts, db);
             response
         }
         "XREAD"  => {
