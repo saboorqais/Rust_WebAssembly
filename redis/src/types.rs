@@ -213,6 +213,7 @@ impl RedisFunctions for RedisValue {
                 _ => "-ERR wrong type\n".to_string(),
             }
         } else {
+            println!("++++++++++ Created new Stream");
             let mut new_strem = Stream::new();
             let mut hash_map: HashMap<String, String> = HashMap::new();
             let new_chunks = parts[3..].chunks(2);
@@ -237,7 +238,7 @@ impl RedisFunctions for RedisValue {
                 ValueType::Stream(_stream) => {
                     let start_id = parts[3];
                     let count: Option<usize> = parts.get(4).and_then(|s| s.parse::<usize>().ok());
-                    let response = _stream.xread(start_id, count);
+                    let response = _stream.x_read(start_id, count);
                     response
                 }
                 _ => "-ERR wrong type\n".to_string(),
