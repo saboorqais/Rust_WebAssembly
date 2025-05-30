@@ -201,9 +201,10 @@ impl RedisFunctions for RedisValue {
     fn x_group_read(parts: Vec<&str>, db: &Db)->String{
         let mut db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
         let stream_name: &str = parts[2];
-        let group_name: &str = parts[3];
+        let group_name: &str = parts[2];
+        let consumer_name: &str = parts[3];
         let last_delivered_id: &str = parts[4];
-        "+0k String".to_string();
+        "+ok String".to_string()
 
     }
     
