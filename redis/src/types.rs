@@ -86,6 +86,7 @@ pub trait RedisFunctions {
     fn x_add(parts: Vec<&str>, db: &Db) -> String;
     fn x_read(parts: Vec<&str>, db: &Db) -> String;
     fn x_group_add(parts: Vec<&str>, db: &Db)->String;
+    fn x_group_read(parts: Vec<&str>, db: &Db)->String;
 }
 impl RedisFunctions for RedisValue {
     fn remove(parts: Vec<&str>, db: &Db) -> String {
@@ -197,6 +198,15 @@ impl RedisFunctions for RedisValue {
             "-Key Does not Exist\n".to_string()
         }
     }
+    fn x_group_read(parts: Vec<&str>, db: &Db)->String{
+        let mut db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
+        let stream_name: &str = parts[2];
+        let group_name: &str = parts[3];
+        let last_delivered_id: &str = parts[4];
+        "+0k String".to_string();
+
+    }
+    
     fn x_group_add(parts: Vec<&str>, db: &Db)->String {
         let mut db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
         let stream_name: &str = parts[2];
