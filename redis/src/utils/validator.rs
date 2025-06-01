@@ -51,8 +51,13 @@ impl CommandValidator for XGROUPREADValidator {
         }
         i += 1;
 
-        let remaining = &parts[i..];
-        if remaining.len() % 2 != 0 || remaining.is_empty() {
+        let remaining = &parts[i..].to_vec();
+        println!(" I am printing {:?}",remaining);
+        let middle_index = remaining.len() /2;
+        if remaining.get(middle_index).copied() != Some(">"){
+            return Err("-ERR must specify equal number of stream names and IDs\n".to_string());
+        }
+        if remaining.len() % 2 == 0 || remaining.is_empty() {
             return Err("-ERR must specify equal number of stream names and IDs\n".to_string());
         }
 

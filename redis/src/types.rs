@@ -1,10 +1,11 @@
-use crate::consumer::consumer::ConsumerGroup;
+use crate::consumer::consumer::{Consumer, ConsumerGroup};
 use crate::stream::stream::{Stream, StreamFunctions};
 use crate::utils::vec_utils::join_from;
 use chrono::{DateTime, Duration, Utc};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fmt;
 use std::fmt::Write;
+use std::hash::Hash;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
@@ -85,8 +86,8 @@ pub trait RedisFunctions {
     fn get_key(parts: Vec<&str>, db: &Db) -> String;
     fn x_add(parts: Vec<&str>, db: &Db) -> String;
     fn x_read(parts: Vec<&str>, db: &Db) -> String;
-    fn x_group_add(parts: Vec<&str>, db: &Db)->String;
-    fn x_group_read(parts: Vec<&str>, db: &Db)->String;
+    fn x_group_add(parts: Vec<&str>, db: &Db) -> String;
+    fn x_group_read(parts: Vec<&str>, db: &Db) -> String;
 }
 impl RedisFunctions for RedisValue {
     fn remove(parts: Vec<&str>, db: &Db) -> String {
@@ -198,17 +199,59 @@ impl RedisFunctions for RedisValue {
             "-Key Does not Exist\n".to_string()
         }
     }
-    fn x_group_read(parts: Vec<&str>, db: &Db)->String{
+    fn x_group_read(parts: Vec<&str>, db: &Db) -> String {
         let mut db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
-        let stream_name: &str = parts[2];
-        let group_name: &str = parts[2];
-        let consumer_name: &str = parts[3];
-        let last_delivered_id: &str = parts[4];
-        "+ok String".to_string()
+        let _group_name: &str = parts[2];
+        let _consumer_name: &str = parts[3];
+        let mut count: Option<usize> = None;
+        let _stream_map: HashMap<String, String> = HashMap::new();
+        let mut stream_index = 7;
+        if parts[4] == "COUNT" {
+            count = parts.get(4).and_then(|s| s.parse::<usize>().ok());
+        } else {
+            stream_index = 4;
+        }
+        let stream_array = &parts[stream_index..];
+        let split_index = stream_array.iter().position(|val| *val == ">");
+        let index: usize = split_index.unwrap_or_else(|| panic!("Expected > in stream array"));
+        let (_stream_name_array, _stream_ids_array) = stream_array.split_at(index);
+        println!(
+            "Split Array {:?} {:?}",
+            _stream_name_array, _stream_ids_array
+        );
+        for _stream_name in _stream_name_array {
+            if let Some(redis_value) = db.get_mut(*_stream_name) {
+                let response = match &mut redis_value.value {
+                    ValueType::Stream(_stream) => {
+                        let response = if let Some(_consumer_group) =
+                            _stream.consumer_groups.get_mut(_group_name)
+                        {
+                            let consumer = _consumer_group
+                                .consumers
+                                .entry(_consumer_name.to_string())
+                                .or_insert_with(|| Consumer {
+                                    name: _consumer_name.to_string(),
+                                    last_seen: 0,
+                                    pending: BTreeSet::new(),
+                                });
 
+                            "+Consumer Added".to_string()
+                        } else {
+                            "Group Name Doesn't Exist".to_string()
+                        };
+                        response
+                    }
+                    _ => "-ERR wrong type\n".to_string(),
+                };
+                response
+            } else {
+                "+OkSteinf".to_string()
+            };
+        }
+        "+OkSteinf".to_string()
     }
-    
-    fn x_group_add(parts: Vec<&str>, db: &Db)->String {
+
+    fn x_group_add(parts: Vec<&str>, db: &Db) -> String {
         let mut db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
         let stream_name: &str = parts[2];
         let group_name: &str = parts[3];
@@ -217,19 +260,21 @@ impl RedisFunctions for RedisValue {
         if let Some(value_type) = db.get_mut(stream_name) {
             match &mut value_type.value {
                 ValueType::Stream(_stream) => {
-                    _stream.consumer_groups.insert(group_name.to_string(), ConsumerGroup{
-                        name:group_name.to_string(),
-                        last_delivered_id:last_delivered_id.to_string(),
-                        consumers:BTreeMap::new(),
-                        pending:BTreeMap::new(),
-
-                    });
+                    _stream.consumer_groups.insert(
+                        group_name.to_string(),
+                        ConsumerGroup {
+                            name: group_name.to_string(),
+                            last_delivered_id: last_delivered_id.to_string(),
+                            consumers: BTreeMap::new(),
+                            pending: BTreeMap::new(),
+                        },
+                    );
                     "+New Group Added".to_string()
                 }
                 _ => "-ERR wrong type\n".to_string(),
             }
         } else {
-           "Error Creating Consumer Group".to_string()
+            "Error Creating Consumer Group".to_string()
         }
     }
     fn x_add(parts: Vec<&str>, db: &Db) -> String {

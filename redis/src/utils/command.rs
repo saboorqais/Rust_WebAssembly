@@ -54,7 +54,7 @@ pub fn execute_command(parts: Vec<&str>, db: &Db, cache: &CACHE, logging: bool) 
             validate_or_return!(XGROUPREADValidator, parts);
            
             println!("Hash({:?})", parts);
-            let response = RedisValue::x_group_add(parts, db);
+            let response = RedisValue::x_group_read(parts, db);
             response
         }
         "XREAD"  => {
