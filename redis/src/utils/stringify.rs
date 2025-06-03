@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-pub fn stringify_map(map: &HashMap<&String, &HashMap<String, String>>) -> String {
+pub fn stringify_map(map: HashMap<String, HashMap<String, String>>) -> String {
     let mut result = String::from("{");
 
     for (i, (outer_key, inner_map)) in map.iter().enumerate() {

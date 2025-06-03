@@ -11,7 +11,7 @@ pub struct StreamEntry {
 pub trait StreamFunctions {
     fn new() -> Self;
     fn add_entry(&mut self, data: ValueType) -> String;
-    fn x_read(&self, start_id: &str, count: Option<usize>) -> HashMap<&String,&HashMap<String,String>> ;
+    fn x_read(&self, start_id: &str, count: Option<usize>) -> HashMap<String,HashMap<String,String>> ;
     fn x_group_add(&self, name: &str, reference_start: Option<usize>) -> String;
 }
 // XGROUPADD newhello worker 0
@@ -43,7 +43,7 @@ impl StreamFunctions for Stream {
         self.last_id = self.last_id + 1;
         "+Ok Entry Added".to_string()
     }
-    fn x_read(&self, start_id: &str, count: Option<usize>) -> HashMap<&String,&HashMap<String,String>> {
+    fn x_read(&self, start_id: &str, count: Option<usize>) -> HashMap<String,HashMap<String,String>> {
         let mut result =HashMap::new();
 
         for (id, entry) in self.entries.range((
@@ -52,7 +52,7 @@ impl StreamFunctions for Stream {
         )) {
             match &entry.value {
                 ValueType::Hash(map) => {
-                    result.insert(id, map);
+                    result.insert(id.clone(), map.clone());
                 }
                 _ => {
                    

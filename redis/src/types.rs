@@ -1,4 +1,4 @@
-use crate::consumer::consumer::{Consumer, ConsumerGroup};
+use crate::consumer::consumer::{Consumer, ConsumerGroup, PendingEntry};
 use crate::stream::stream::{Stream, StreamFunctions};
 use crate::utils::stringify::stringify_map;
 use crate::utils::vec_utils::join_from;
@@ -224,26 +224,61 @@ impl RedisFunctions for RedisValue {
             if let Some(redis_value) = db.get_mut(*_stream_name) {
                 let response = match &mut redis_value.value {
                     ValueType::Stream(_stream) => {
-                        let response = if let Some(_consumer_group) =
-                            _stream.consumer_groups.get_mut(_group_name)
-                        {
-                            let _consumer = _consumer_group
-                                .consumers
-                                .entry(_consumer_name.to_string())
-                                .or_insert_with(|| Consumer {
-                                    name: _consumer_name.to_string(),
-                                    last_seen: 0,
-                                    pending: BTreeSet::new(),
-                                });
-                                let consumer_last_delivered = _consumer_group.last_delivered_id.clone();
-                               let response = _stream.x_read(&consumer_last_delivered, count);
-                            let modified_response = stringify_map(&response);
-                             modified_response
+                        let response = if _stream.consumer_groups.contains_key(_group_name) {
+                            let consumer_last_delivered;
+                            {
+                                // First mutable borrow scope
+                                let _consumer_group =
+                                    _stream.consumer_groups.get_mut(_group_name).unwrap();
+                                let _consumer = _consumer_group
+                                    .consumers
+                                    .entry(_consumer_name.to_string())
+                                    .or_insert_with(|| Consumer {
+                                        name: _consumer_name.to_string(),
+                                        last_seen: 0,
+                                        pending: BTreeSet::new(),
+                                    });
+                                consumer_last_delivered = _consumer_group.last_delivered_id.clone();
+                            } // ← _consumer_group mutable borrow ends here
+
+                            // Now it's safe to mutably borrow _stream again
+                            let response = _stream.x_read(&consumer_last_delivered, count);
+
+                            {
+                                let _consumer_group =
+                                    _stream.consumer_groups.get_mut(_group_name).unwrap();
+                                for key in response.keys() {
+                                    _consumer_group.pending.insert(
+                                        key.to_string(),
+                                        PendingEntry {
+                                            entry_id: key.to_string(),
+                                            delivery_count: 0,
+                                            consumer_name: _consumer_name.to_string(),
+                                            timestamp: Utc::now(),
+                                        },
+                                    );
+                                }
+                            }
+                            {
+                                let _consumer_group =
+                                    _stream.consumer_groups.get_mut(_group_name).unwrap();
+                                if let Some(consumer) =
+                                    _consumer_group.consumers.get_mut(_consumer_name)
+                                {
+                                    for key in response.keys() {
+                                        consumer.pending.insert(key.to_string());
+                                    }
+                                } else {
+                                };
+                            }
+
+                            stringify_map(response)
                         } else {
                             "Group Name Doesn't Exist".to_string()
                         };
                         response
                     }
+
                     _ => "-ERR wrong type\n".to_string(),
                 };
                 response
@@ -325,7 +360,7 @@ impl RedisFunctions for RedisValue {
                     let start_id = parts[3];
                     let count: Option<usize> = parts.get(4).and_then(|s| s.parse::<usize>().ok());
                     let response = _stream.x_read(start_id, count);
-                    let modified_response = stringify_map(&response);
+                    let modified_response = stringify_map(response);
                     modified_response
                 }
                 _ => "-ERR wrong type\n".to_string(),

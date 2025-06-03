@@ -1,4 +1,6 @@
 use std::collections::{BTreeMap,BTreeSet};
+
+use chrono::{DateTime, Utc};
 #[derive(Debug)]
 pub struct ConsumerGroup {
     pub name: String,
@@ -16,6 +18,6 @@ pub struct Consumer {
 pub struct PendingEntry {
     pub entry_id: String,
     pub consumer_name: String,
-    pub timestamp: u64, // delivery timestamp
+    pub timestamp:DateTime<Utc>, // delivery timestamp
     pub delivery_count: u32, // number of times this entry was delivered
 }
