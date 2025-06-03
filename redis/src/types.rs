@@ -1,5 +1,6 @@
 use crate::consumer::consumer::{Consumer, ConsumerGroup};
 use crate::stream::stream::{Stream, StreamFunctions};
+use crate::utils::stringify::stringify_map;
 use crate::utils::vec_utils::join_from;
 use chrono::{DateTime, Duration, Utc};
 use std::collections::{BTreeMap, BTreeSet, HashSet};
@@ -226,7 +227,7 @@ impl RedisFunctions for RedisValue {
                         let response = if let Some(_consumer_group) =
                             _stream.consumer_groups.get_mut(_group_name)
                         {
-                            let consumer = _consumer_group
+                            let _consumer = _consumer_group
                                 .consumers
                                 .entry(_consumer_name.to_string())
                                 .or_insert_with(|| Consumer {
@@ -234,8 +235,10 @@ impl RedisFunctions for RedisValue {
                                     last_seen: 0,
                                     pending: BTreeSet::new(),
                                 });
-
-                            "+Consumer Added".to_string()
+                                let consumer_last_delivered = _consumer_group.last_delivered_id.clone();
+                               let response = _stream.x_read(&consumer_last_delivered, count);
+                            let modified_response = stringify_map(&response);
+                             modified_response
                         } else {
                             "Group Name Doesn't Exist".to_string()
                         };
@@ -322,7 +325,8 @@ impl RedisFunctions for RedisValue {
                     let start_id = parts[3];
                     let count: Option<usize> = parts.get(4).and_then(|s| s.parse::<usize>().ok());
                     let response = _stream.x_read(start_id, count);
-                    response
+                    let modified_response = stringify_map(&response);
+                    modified_response
                 }
                 _ => "-ERR wrong type\n".to_string(),
             }

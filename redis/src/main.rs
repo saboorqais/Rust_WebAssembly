@@ -12,6 +12,7 @@ mod utils;
 mod logging;
 mod stream;
 mod consumer;
+use utils::stringify::stringify_map;
 use utils::command::execute_command;
 use logging::logging::Logger; 
 use types::*;

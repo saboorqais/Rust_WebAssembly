@@ -39,21 +39,16 @@ pub fn execute_command(parts: Vec<&str>, db: &Db, cache: &CACHE, logging: bool) 
             if logging {
                 Logger::log_aof(&parts);
             }
-            println!("Hash({:?})", parts);
             let response = RedisValue::x_add(parts, db);
             response
         }
         "XGROUPADD"  => {
             validate_or_return!(XGROUPADDValidator, parts);
-           
-            println!("Hash({:?})", parts);
             let response = RedisValue::x_group_add(parts, db);
             response
         }
         "XGROUPREAD"  => {
             validate_or_return!(XGROUPREADValidator, parts);
-           
-            println!("Hash({:?})", parts);
             let response = RedisValue::x_group_read(parts, db);
             response
         }
@@ -62,7 +57,7 @@ pub fn execute_command(parts: Vec<&str>, db: &Db, cache: &CACHE, logging: bool) 
             if logging {
                 Logger::log_aof(&parts);
             }
-            println!("Hash({:?})", parts);
+       
             let response = RedisValue::x_read(parts, db);
             response
         }
