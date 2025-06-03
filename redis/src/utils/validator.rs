@@ -73,7 +73,7 @@ impl CommandValidator for XGROUPADDValidator {
         } else if !(arguments_length % 2 == 0) {
             Err("-ERR wrong number of arguments for 'XAdd' Values\n".to_string())
         }
-        else if parts[2]!="GROUP" {
+        else if parts[1]!="GROUP" {
             Err("-ERR Second Argument should be GROUP".to_string())
         }
         else {
