@@ -268,8 +268,7 @@ impl RedisFunctions for RedisValue {
                                     for key in response.keys() {
                                         consumer.pending.insert(key.to_string());
                                     }
-                                } else {
-                                };
+                                }
                             }
 
                             stringify_map(response)
