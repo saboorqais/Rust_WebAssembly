@@ -12,7 +12,7 @@ pub trait StreamFunctions {
     fn new() -> Self;
     fn add_entry(&mut self, data: ValueType) -> String;
     fn x_read(&self, start_id: &str, count: Option<usize>) -> HashMap<String,HashMap<String,String>> ;
-    fn x_group_add(&self, name: &str, reference_start: Option<usize>) -> String;
+   
 }
 // XGROUPADD newhello worker 0
 #[derive(Debug)]
@@ -30,11 +30,7 @@ impl StreamFunctions for Stream {
             consumer_groups: BTreeMap::new(),
         }
     }
-    fn x_group_add(&self,name: &str, reference_start: Option<usize>) -> String {
 
-
-        "+ok".to_string()
-    }
     fn add_entry(&mut self, data: ValueType) -> String {
         let ts = Utc::now().timestamp_millis();
         let id = format!("{}-{}", ts, self.last_id);

@@ -220,7 +220,7 @@ impl RedisFunctions for RedisValue {
             "Split Array {:?} {:?}",
             _stream_name_array, _stream_ids_array
         );
-        for _stream_name in _stream_name_array {
+        for (index,_stream_name) in  _stream_name_array.iter().enumerate() {
             if let Some(redis_value) = db.get_mut(*_stream_name) {
                 let response = match &mut redis_value.value {
                     ValueType::Stream(_stream) => {
@@ -242,11 +242,13 @@ impl RedisFunctions for RedisValue {
                             } // ← _consumer_group mutable borrow ends here
 
                             // Now it's safe to mutably borrow _stream again
-                            let response = _stream.x_read(&consumer_last_delivered, count);
+                            let response: HashMap<String, HashMap<String, String>> = _stream.x_read(&consumer_last_delivered, count);
+                            let latest_last_delivered_id = response.keys().last().unwrap_or(&consumer_last_delivered);
 
                             {
                                 let _consumer_group =
                                     _stream.consumer_groups.get_mut(_group_name).unwrap();
+                                    _consumer_group.last_delivered_id=latest_last_delivered_id.to_string();
                                 for key in response.keys() {
                                     _consumer_group.pending.insert(
                                         key.to_string(),
@@ -269,7 +271,7 @@ impl RedisFunctions for RedisValue {
                                         consumer.pending.insert(key.to_string());
                                     }
                                 }
-                                println!("{:?}",_consumer_group);
+                                println!("{:?}", _consumer_group);
                             }
 
                             stringify_map(response)
@@ -288,7 +290,9 @@ impl RedisFunctions for RedisValue {
         }
         "+OkSteinf".to_string()
     }
-
+    //XGROUPADD GROUP newhello mygroup 1749069781831-0
+    //+New Group Added
+    //XGROUPREAD GROUP mygroup alice COUNT 5 STREAMS newhello > 1749069781831-0
     fn x_group_add(parts: Vec<&str>, db: &Db) -> String {
         let mut db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
         let stream_name: &str = parts[2];
@@ -382,15 +386,55 @@ impl fmt::Display for RedisValue {
             ValueType::LinkedList(linked_list) => write!(f, "LinkedList({:?})", linked_list),
             ValueType::Stream(stream) => {
                 let mut output = String::new();
+
+                // Stream entries
+                writeln!(output, "Stream Entries:").ok();
                 for (id, entry) in &stream.entries {
                     if let ValueType::Hash(map) = &entry.value {
-                        let _ = writeln!(output, "{}:", id);
+                        writeln!(output, "  ID: {}", id).ok();
                         for (k, v) in map {
-                            let _ = writeln!(output, "  {} => {}", k, v);
+                            writeln!(output, "    {} => {}", k, v).ok();
+                        }
+                    } else {
+                        writeln!(output, "  ID: {} => {:?}", id, entry.value).ok();
+                    }
+                }
+
+                // Consumer groups (only print if exists)
+                if !stream.consumer_groups.is_empty() {
+                    writeln!(output, "\nConsumer Groups:").ok();
+                    for (group_name, group) in &stream.consumer_groups {
+                        writeln!(output, "  Group: {}", group_name).ok();
+                        writeln!(output, "    Last Delivered ID: {}", group.last_delivered_id).ok();
+
+                        // Consumers
+                        writeln!(output, "    Consumers:").ok();
+                        for (consumer_name, consumer) in &group.consumers {
+                            writeln!(output, "      Consumer: {}", consumer_name).ok();
+                            writeln!(output, "        Pending IDs: {:?}", consumer.pending).ok();
+                            writeln!(output, "        Last Seen: {}", consumer.last_seen).ok();
+                        }
+
+                        // Pending Entries
+                        if !group.pending.is_empty() {
+                            writeln!(output, "    Pending Entries:").ok();
+                            for (entry_id, pending) in &group.pending {
+                                writeln!(output, "      Entry ID: {}", entry_id).ok();
+                                writeln!(output, "        Consumer: {}", pending.consumer_name)
+                                    .ok();
+                                writeln!(output, "        Timestamp: {}", pending.timestamp).ok();
+                                writeln!(
+                                    output,
+                                    "        Delivery Count: {}",
+                                    pending.delivery_count
+                                )
+                                .ok();
+                            }
                         }
                     }
                 }
-                write!(f, "Stream => {}", output) // This returns the formatted stream
+
+                write!(f, "Stream => \n{}", output)
             }
         }
     }

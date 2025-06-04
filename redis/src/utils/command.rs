@@ -52,8 +52,13 @@ pub fn execute_command(parts: Vec<&str>, db: &Db, cache: &CACHE, logging: bool) 
             let response = RedisValue::x_group_read(parts, db);
             response
         }
+        "XACK"  => {
+            validate_or_return!(XGROUPREADValidator, parts);
+            let response = RedisValue::x_group_read(parts, db);
+            response
+        }
         "XREAD"  => {
-            // validate_or_return!(XADDValidator, parts);
+            //  validate_or_return!(XADDValidator, parts);
             if logging {
                 Logger::log_aof(&parts);
             }

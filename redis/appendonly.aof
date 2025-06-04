@@ -2,5 +2,10 @@ XADD mystream * hello mykey newkey hello
 XADD mynewstream * good morning
 XADD newhello * hymeh asda
 XADD newhello * new key hello asd
-
+XADD newhello * adding 2
+XADD newhello * hello kese ho hoe
+XADD newhello * asd asdakasd
+XADD newhello * aksdnkanew jkasdnkkey hello asd
 XREAD STREAM newhello 1748458409039-0 0
+XREAD STREAM newhello 1748458409039-0 0
+XADD newhello * new key message sam
