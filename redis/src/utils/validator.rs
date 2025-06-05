@@ -14,8 +14,6 @@ impl CommandValidator for  XACKValidator {
     fn validate(parts: &Vec<&str>) -> Result<(), String> {
         if parts.len() < 4 {
             Err("-ERR wrong number of arguments for 'XACK'\n".to_string())
-        }else if parts[2] !="GROUP" {
-            Err("-Specify Type for Stream\n".to_string())
         }
      else {
             Ok(())

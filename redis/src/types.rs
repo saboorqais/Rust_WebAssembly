@@ -89,6 +89,7 @@ pub trait RedisFunctions {
     fn x_read(parts: Vec<&str>, db: &Db) -> String;
     fn x_group_add(parts: Vec<&str>, db: &Db) -> String;
     fn x_group_read(parts: Vec<&str>, db: &Db) -> String;
+    fn x_message_ack(parts: Vec<&str>, db: &Db) -> String;
 }
 impl RedisFunctions for RedisValue {
     fn remove(parts: Vec<&str>, db: &Db) -> String {
@@ -200,6 +201,34 @@ impl RedisFunctions for RedisValue {
             "-Key Does not Exist\n".to_string()
         }
     }
+    fn x_message_ack(parts: Vec<&str>, db: &Db) -> String {
+        let mut db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
+        let _group_name: &str = parts[1];
+        let _stream_name: &str = parts[2];
+        let _message_id: &str = parts[3];
+        if let Some(redis_value) = db.get_mut(_stream_name) {
+            let response = match &mut redis_value.value {
+                ValueType::Stream(_stream) => {
+                 if let Some(_consumer_group) =  _stream.consumer_groups.get_mut(_group_name){
+                        _consumer_group.pending.remove(_message_id);
+                       for (index,consumer)  in _consumer_group.consumers.iter_mut(){
+                        if consumer.pending.contains(_message_id){
+                                consumer.pending.remove(_message_id);
+                        }
+                       }
+                 }else{
+
+                 }
+                    "+ok".to_string()
+                },
+                _ => "-ERR wrong type\n".to_string(),
+            };
+
+            response
+        } else {
+            "+Group Doesnt Exist".to_string()
+        }
+    }
     fn x_group_read(parts: Vec<&str>, db: &Db) -> String {
         let mut db: std::sync::MutexGuard<'_, HashMap<String, RedisValue>> = db.lock().unwrap();
         let _group_name: &str = parts[2];
@@ -220,7 +249,7 @@ impl RedisFunctions for RedisValue {
             "Split Array {:?} {:?}",
             _stream_name_array, _stream_ids_array
         );
-        for (index,_stream_name) in  _stream_name_array.iter().enumerate() {
+        for (index, _stream_name) in _stream_name_array.iter().enumerate() {
             if let Some(redis_value) = db.get_mut(*_stream_name) {
                 let response = match &mut redis_value.value {
                     ValueType::Stream(_stream) => {
@@ -242,13 +271,20 @@ impl RedisFunctions for RedisValue {
                             } // ← _consumer_group mutable borrow ends here
 
                             // Now it's safe to mutably borrow _stream again
-                            let response: HashMap<String, HashMap<String, String>> = _stream.x_read(&consumer_last_delivered, count);
-                            let latest_last_delivered_id = response.keys().last().unwrap_or(&consumer_last_delivered);
-
+                            let response: HashMap<String, HashMap<String, String>> =
+                                _stream.x_read(&consumer_last_delivered, count);
+                            let mut latest_last_delivered_id =String::new();
+                             
+                                {
+                            
+                                    latest_last_delivered_id.push_str(_stream.entries.keys().next_back().unwrap());
+                                }
+                            println!("These are keys {:?}", response.keys());
                             {
                                 let _consumer_group =
                                     _stream.consumer_groups.get_mut(_group_name).unwrap();
-                                    _consumer_group.last_delivered_id=latest_last_delivered_id.to_string();
+                                _consumer_group.last_delivered_id =
+                                    latest_last_delivered_id.to_string();
                                 for key in response.keys() {
                                     _consumer_group.pending.insert(
                                         key.to_string(),

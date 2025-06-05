@@ -54,11 +54,11 @@ impl StreamFunctions for Stream {
                    
                 }
             }
-            if let Some(max) = count {
-                if result.len() == max {
-                    break;
-                }
-            }
+            // if let Some(max) = count {
+            //     if result.len() == max {
+            //         break;
+            //     }
+            // }
         }
       
         result

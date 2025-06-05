@@ -1,3 +1,4 @@
+use crate::utils::validator::XACKValidator;
 use crate::utils::validator::XGROUPADDValidator;
 use crate::utils::validator::XGROUPREADValidator;
 use crate::Logger;
@@ -53,8 +54,8 @@ pub fn execute_command(parts: Vec<&str>, db: &Db, cache: &CACHE, logging: bool) 
             response
         }
         "XACK"  => {
-            validate_or_return!(XGROUPREADValidator, parts);
-            let response = RedisValue::x_group_read(parts, db);
+            validate_or_return!(XACKValidator, parts);
+            let response = RedisValue::x_message_ack(parts, db);
             response
         }
         "XREAD"  => {
