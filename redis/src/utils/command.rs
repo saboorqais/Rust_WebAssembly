@@ -24,16 +24,16 @@ pub fn execute_command(parts: Vec<&str>, db: &Db, cache: &CACHE, logging: bool) 
             if logging {
                 Logger::log_aof(&parts);
             }
-            RedisValue::lpush(parts, db, cache);
-            "+OK\n".to_string()
+            let response= RedisValue::lpush(parts, db, cache);
+            response
         }
         "LPOP" => {
             validate_or_return!(LPopValidator, parts);
             if logging {
                 Logger::log_aof(&parts);
             }
-            RedisValue::lpop(parts, db, cache);
-            "+OK\n".to_string()
+           let response = RedisValue::lpop(parts, db, cache);
+            response
         }
         "XADD"  => {
             validate_or_return!(XADDValidator, parts);

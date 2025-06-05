@@ -17,3 +17,11 @@ XADD newhello * new key message sam
 SET hello key
 SET keyy hello
 SET key 21ahd usiandi sad
+LPUSH newlist hello
+LPOP newlist
+LPUSH hello ajkshdas
+LPUSH hello sad
+LPUSH helloia asd
+LPUSH helloia asdasdasd
+LPOP helloia
+LPOP helloia
