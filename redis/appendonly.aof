@@ -14,3 +14,6 @@ XADD newhello * new key message sam2222
 XADD newhello * new key message sam
 XADD newhello * new key message sam
 XADD newhello * new key message sam
+SET hello key
+SET keyy hello
+SET key 21ahd usiandi sad

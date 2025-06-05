@@ -411,12 +411,12 @@ impl RedisFunctions for RedisValue {
 impl fmt::Display for RedisValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.value {
-            ValueType::String(val) => write!(f, "String({})", val),
+            ValueType::String(val) => write!(f, "Result : {}", val),
             // ValueType::List(vals) => write!(f, "List({:?})", vals),
             // ValueType::Set(vals) => write!(f, "Set({:?})", vals),
-            ValueType::Hash(vals) => write!(f, "Hash({:?})", vals),
+            ValueType::Hash(vals) => write!(f, "Result : {:?} ", vals),
             // ValueType::SortedSet(vals) => write!(f, "SortedSet({:?})", vals),
-            ValueType::LinkedList(linked_list) => write!(f, "LinkedList({:?})", linked_list),
+            ValueType::LinkedList(linked_list) => write!(f, "Result : {:?} ", linked_list),
             ValueType::Stream(stream) => {
                 let mut output = String::new();
 
