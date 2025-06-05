@@ -245,10 +245,6 @@ impl RedisFunctions for RedisValue {
         let split_index = stream_array.iter().position(|val| *val == ">");
         let index: usize = split_index.unwrap_or_else(|| panic!("Expected > in stream array"));
         let (_stream_name_array, _stream_ids_array) = stream_array.split_at(index);
-        println!(
-            "Split Array {:?} {:?}",
-            _stream_name_array, _stream_ids_array
-        );
         for (index, _stream_name) in _stream_name_array.iter().enumerate() {
             if let Some(redis_value) = db.get_mut(*_stream_name) {
                 let response = match &mut redis_value.value {
@@ -279,7 +275,6 @@ impl RedisFunctions for RedisValue {
                             
                                     latest_last_delivered_id.push_str(_stream.entries.keys().next_back().unwrap());
                                 }
-                            println!("These are keys {:?}", response.keys());
                             {
                                 let _consumer_group =
                                     _stream.consumer_groups.get_mut(_group_name).unwrap();
@@ -321,7 +316,7 @@ impl RedisFunctions for RedisValue {
                 };
                 response
             } else {
-                "+OkSteinf".to_string()
+                "+OK Message".to_string()
             };
         }
         "+OkSteinf".to_string()
