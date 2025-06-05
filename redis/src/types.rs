@@ -244,8 +244,9 @@ impl RedisFunctions for RedisValue {
         let stream_array = &parts[stream_index..];
         let split_index = stream_array.iter().position(|val| *val == ">");
         let index: usize = split_index.unwrap_or_else(|| panic!("Expected > in stream array"));
+        let mut final_response = String::new();
         let (_stream_name_array, _stream_ids_array) = stream_array.split_at(index);
-        for (index, _stream_name) in _stream_name_array.iter().enumerate() {
+       for (index, _stream_name) in _stream_name_array.iter().enumerate() {
             if let Some(redis_value) = db.get_mut(*_stream_name) {
                 let response = match &mut redis_value.value {
                     ValueType::Stream(_stream) => {
@@ -302,24 +303,25 @@ impl RedisFunctions for RedisValue {
                                         consumer.pending.insert(key.to_string());
                                     }
                                 }
-                                println!("{:?}", _consumer_group);
                             }
 
-                            stringify_map(response)
+                            final_response.push_str(&stringify_map(response))
+                             
                         } else {
-                            "Group Name Doesn't Exist".to_string()
+                            final_response.push_str("Group Doesnt not Exist")
                         };
                         response
                     }
 
-                    _ => "-ERR wrong type\n".to_string(),
+                    _ =>  final_response.push_str("Wrong Error Type"),
                 };
                 response
             } else {
-                "+OK Message".to_string()
+                final_response.push_str("+OK Message")
+
             };
-        }
-        "+OkSteinf".to_string()
+        };
+      final_response
     }
     //XGROUPADD GROUP newhello mygroup 1749069781831-0
     //+New Group Added
