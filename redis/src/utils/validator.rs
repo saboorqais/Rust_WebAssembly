@@ -55,10 +55,10 @@ impl CommandValidator for XGROUPREADValidator {
             if parts[i + 1].parse::<usize>().is_err() {
                 return Err("-ERR COUNT value must be a valid integer\n".to_string());
             }
-            i += 2; // Skip COUNT and its number
+            i += 2; 
         }
 
-        // Expect STREAMS keyword
+   
         if parts.get(i).map(|s| *s) != Some("STREAMS") {
             return Err("-ERR expected 'STREAMS' keyword\n".to_string());
         }
