@@ -6,7 +6,6 @@ use chrono::{DateTime, Duration, Utc};
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fmt;
 use std::fmt::Write;
-use std::hash::Hash;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
