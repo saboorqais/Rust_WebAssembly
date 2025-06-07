@@ -25,7 +25,7 @@ pub fn execute_command(parts: Vec<&str>, db: &Db, cache: &CACHE, logging: bool) 
                 Logger::log_aof(&parts);
             }
             let response= RedisValue::lpush(parts, db, cache);
-            response
+            response  
         }
         "LPOP" => {
             validate_or_return!(LPopValidator, parts);
