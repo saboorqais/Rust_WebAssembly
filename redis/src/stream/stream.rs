@@ -1,7 +1,6 @@
 use crate::consumer::consumer::{Consumer, ConsumerGroup, PendingEntry};
 use crate::types::ValueType;
 use std::collections::{BTreeMap, HashMap};
-use std::hash::Hash;
 type EntryId = String;
 use chrono::Utc;
 #[derive(Debug)]
@@ -11,7 +10,7 @@ pub struct StreamEntry {
 pub trait StreamFunctions {
     fn new() -> Self;
     fn add_entry(&mut self, data: ValueType) -> String;
-    fn x_read(&self, start_id: &str, count: Option<usize>) -> HashMap<String,HashMap<String,String>> ;
+    fn x_read(&self, start_id: &str) -> HashMap<String,HashMap<String,String>> ;
    
 }
 // XGROUPADD newhello worker 0
@@ -39,7 +38,7 @@ impl StreamFunctions for Stream {
         self.last_id = self.last_id + 1;
         "+Ok Entry Added".to_string()
     }
-    fn x_read(&self, start_id: &str, count: Option<usize>) -> HashMap<String,HashMap<String,String>> {
+    fn x_read(&self, start_id: &str) -> HashMap<String,HashMap<String,String>> {
         let mut result =HashMap::new();
 
         for (id, entry) in self.entries.range((
@@ -54,11 +53,7 @@ impl StreamFunctions for Stream {
                    
                 }
             }
-            // if let Some(max) = count {
-            //     if result.len() == max {
-            //         break;
-            //     }
-            // }
+  
         }
       
         result

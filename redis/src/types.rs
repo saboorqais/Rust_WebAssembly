@@ -269,7 +269,7 @@ impl RedisFunctions for RedisValue {
 
                             // Now it's safe to mutably borrow _stream again
                             let response: HashMap<String, HashMap<String, String>> =
-                                _stream.x_read(&consumer_last_delivered, count);
+                                _stream.x_read(&consumer_last_delivered);
                             let mut latest_last_delivered_id =String::new();
                              
                                 {
@@ -396,7 +396,7 @@ impl RedisFunctions for RedisValue {
                 ValueType::Stream(_stream) => {
                     let start_id = parts[3];
                     let count: Option<usize> = parts.get(4).and_then(|s| s.parse::<usize>().ok());
-                    let response = _stream.x_read(start_id, count);
+                    let response = _stream.x_read(start_id);
                     let modified_response = stringify_map(response);
                     modified_response
                 }
